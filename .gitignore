@@ -1,0 +1,46 @@
+# Python __pycache__
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Data (large files, keep sample only)
+data/raw/
+data/processed/
+*.parquet
+*.h5
+*.hdf5
+
+# Model files
+models/*.gguf
+models/*.bin
+
+# Ollama
+ollama/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env.local
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Logs
+*.log
+logs/
+
+# Reports (generated)
+docs/03_回测实验报告/generated/
+temp/
