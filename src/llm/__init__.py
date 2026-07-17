@@ -1,3 +1,3 @@
-from .client import LLMClient, EmbeddingClient
+from .client import EmbeddingClient, LLMClient
 
 __all__ = ["LLMClient", "EmbeddingClient"]

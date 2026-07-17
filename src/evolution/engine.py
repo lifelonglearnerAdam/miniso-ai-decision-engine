@@ -1,278 +1,341 @@
-"""
-进化式创意引擎 (Evolutionary Creative Engine)
-===========================================
-创新4: 遗传算法驱动的产品创意进化
+"""Multi-objective evolutionary search for product concepts.
 
-核心流程:
-  1. 种群初始化: 基于趋势生成初始创意
-  2. 适应度评估: 多目标 (爆品概率 + DFM可行性)
-  3. 选择/交叉/变异: 帕累托前沿优化
-  4. 偏好飞轮: 用户反馈驱动进化方向
+The implementation keeps three objectives separate: predicted demand,
+manufacturability and novelty.  The returned front is non-dominated; it is not
+a relabelled single-score ranking.
 """
+
+from __future__ import annotations
+
+from collections.abc import Callable
+from copy import deepcopy
+from dataclasses import dataclass
 
 import numpy as np
-from typing import Optional, Callable
-from dataclasses import dataclass, field
 
 
 @dataclass
 class ProductIdea:
-    """产品创意基因型"""
+    """A product concept encoded as a compact, mutable genotype."""
+
     id: str
-    category: str           # 品类 (如: 家居/美妆/食品)
-    price_tier: str         # 价格带 (低价/中价/高价)
-    style: str              # 风格 (简约/IP联名/国潮)
-    target_audience: str    # 目标人群
-    material: str           # 材质
-    features: list[str]     # 特征列表
-    dfm_score: float = 1.0  # 可制造性评分
+    category: str
+    price_tier: str
+    style: str
+    target_audience: str
+    material: str
+    features: list[str]
+    dfm_score: float = 1.0
+    hit_score: float = 0.0
+    novelty_score: float = 0.0
 
     def to_prompt(self) -> str:
-        """转 LLM prompt"""
         return (
             f"品类: {self.category}, 价格带: {self.price_tier}, "
             f"风格: {self.style}, 受众: {self.target_audience}, "
             f"材质: {self.material}, 特征: {', '.join(self.features)}"
         )
 
+    @property
+    def objectives(self) -> tuple[float, float, float]:
+        return self.hit_score, self.dfm_score, self.novelty_score
 
-@dataclass
+
+@dataclass(frozen=True)
 class DFMRule:
-    """可制造性约束规则"""
-    condition: str          # 条件描述
-    penalty: float          # 违反惩罚 (0~1)
-    description: str        # 规则描述
+    """A human-readable manufacturing constraint."""
+
+    rule_id: str
+    penalty: float
+    description: str
 
 
 class DFMConstraintEngine:
-    """DFM 可制造性约束引擎"""
+    """Evaluate explicit, auditable design-for-manufacturing rules."""
 
-    def __init__(self):
-        self.rules: list[DFMRule] = self._default_rules()
+    rules = (
+        DFMRule("rare_material", 0.60, "稀有或贵金属不符合大众价格带"),
+        DFMRule("low_price_oled", 0.70, "低价产品搭载 OLED 存在成本倒挂风险"),
+        DFMRule("electronics_waterproof", 0.30, "电子产品防水需要额外密封与测试"),
+        DFMRule("premium_thin_value", 0.40, "高价概念缺少足够价值点"),
+        DFMRule("food_contact_plastic", 0.45, "食品接触塑料需要材料合规证明"),
+        DFMRule("low_price_ip", 0.30, "低价 IP 联名需核验授权费空间"),
+    )
 
-    def _default_rules(self) -> list[DFMRule]:
-        return [
-            DFMRule("material in ['钛合金','纯金']", 0.6, "贵金属/稀有材料成本过高"),
-            DFMRule("features contains 'OLED' and price_tier == '低价'", 0.7, "低价产品无法承载OLED屏"),
-            DFMRule("category == '电子产品' and features contains '防水'", 0.3, "防水需要额外密封工艺"),
-            DFMRule("price_tier == '高价' and len(features) < 3", 0.4, "高价产品应有足够卖点"),
-            DFMRule("category == '食品' and material == '塑料'", 0.8, "食品接触禁用非食品级塑料"),
-            DFMRule("style == 'IP联名' and price_tier == '低价'", 0.3, "IP联名定价空间有限"),
-        ]
+    @staticmethod
+    def _violated_rule_ids(idea: ProductIdea) -> list[str]:
+        features = {feature.upper() for feature in idea.features}
+        violations = []
+        if idea.material in {"钛合金", "纯金"}:
+            violations.append("rare_material")
+        if "OLED" in features and idea.price_tier == "低价":
+            violations.append("low_price_oled")
+        if idea.category in {"电子产品", "数码配件"} and "防水" in idea.features:
+            violations.append("electronics_waterproof")
+        if idea.price_tier == "高价" and len(set(idea.features)) < 3:
+            violations.append("premium_thin_value")
+        if idea.category == "食品" and idea.material == "塑料":
+            violations.append("food_contact_plastic")
+        if idea.style == "IP联名" and idea.price_tier == "低价":
+            violations.append("low_price_ip")
+        return violations
 
-    def add_rule(self, rule: DFMRule):
-        self.rules.append(rule)
+    def evaluate_with_reasons(self, idea: ProductIdea) -> tuple[float, list[DFMRule]]:
+        violated = set(self._violated_rule_ids(idea))
+        matched = [rule for rule in self.rules if rule.rule_id in violated]
+        # Multiplicative penalties avoid instantly collapsing a concept to zero.
+        score = float(np.prod([1.0 - rule.penalty for rule in matched])) if matched else 1.0
+        return max(0.0, min(1.0, score)), matched
 
     def evaluate(self, idea: ProductIdea) -> float:
-        """
-        评估可制造性得分 (0~1, 越高越可行)
-        """
-        score = 1.0
-        idea_str = idea.to_prompt()
-
-        for rule in self.rules:
-            # 简化规则匹配 (实际可用更复杂的规则引擎)
-            keywords = rule.condition.lower()
-            if any(kw in idea_str.lower() for kw in keywords.split("==")):
-                score -= rule.penalty
-
-        return max(0.0, score)
+        return self.evaluate_with_reasons(idea)[0]
 
 
 class PreferenceFlyingWheel:
-    """
-    偏好飞轮 (Preference Flying Wheel)
-    通过用户反馈持续调整进化方向
-    """
+    """A deterministic preference-weight accumulator for human feedback."""
 
-    def __init__(self, n_attributes: int = 5):
-        self.weights = np.ones(n_attributes) / n_attributes
-        self.history: list[dict] = []
+    attributes = ("demand", "dfm", "novelty")
 
-    def update(self, feedback: dict[str, float]):
-        """
-        根据反馈更新偏好权重
+    def __init__(self):
+        self.weights = np.array([0.50, 0.30, 0.20], dtype=float)
+        self.history: list[dict[str, float]] = []
 
-        Args:
-            feedback: {"attribute": score, ...}
-        """
-        self.history.append(feedback)
-
-        # 指数移动平均更新权重
-        lr = 0.3
-        for attr, score in feedback.items():
-            idx = hash(attr) % len(self.weights)
-            self.weights[idx] = (1 - lr) * self.weights[idx] + lr * score
-
+    def update(self, feedback: dict[str, float]) -> None:
+        unknown = set(feedback) - set(self.attributes)
+        if unknown:
+            raise ValueError(f"unknown preference attributes: {sorted(unknown)}")
+        self.history.append(dict(feedback))
+        learning_rate = 0.30
+        for name, score in feedback.items():
+            if not 0 <= score <= 1:
+                raise ValueError("preference scores must be between 0 and 1")
+            index = self.attributes.index(name)
+            self.weights[index] = (1 - learning_rate) * self.weights[index] + learning_rate * score
         self.weights /= self.weights.sum()
 
     def get_weights(self) -> np.ndarray:
-        return self.weights
+        return self.weights.copy()
+
+
+def _dominates(left: ProductIdea, right: ProductIdea) -> bool:
+    return all(a >= b for a, b in zip(left.objectives, right.objectives, strict=True)) and any(
+        a > b for a, b in zip(left.objectives, right.objectives, strict=True)
+    )
 
 
 class EvolutionEngine:
-    """
-    进化式创意引擎
-
-    使用遗传算法搜索最优产品创意组合。
-    """
+    """Run a reproducible evolutionary loop and return a Pareto front."""
 
     def __init__(
         self,
         population_size: int = 100,
-        mutation_rate: float = 0.2,
-        crossover_rate: float = 0.7,
+        mutation_rate: float = 0.20,
+        crossover_rate: float = 0.70,
         n_generations: int = 50,
+        random_state: int = 2026,
     ):
+        if population_size < 4:
+            raise ValueError("population_size must be at least 4")
+        if not 0 <= mutation_rate <= 1 or not 0 <= crossover_rate <= 1:
+            raise ValueError("mutation_rate and crossover_rate must be in [0, 1]")
+        if n_generations <= 0:
+            raise ValueError("n_generations must be positive")
         self.population_size = population_size
         self.mutation_rate = mutation_rate
         self.crossover_rate = crossover_rate
         self.n_generations = n_generations
-
+        self.rng = np.random.default_rng(random_state)
         self.population: list[ProductIdea] = []
-        self.history: dict[int, list[float]] = {}
+        self.history: dict[int, dict[str, float]] = {}
         self.dfm_engine = DFMConstraintEngine()
         self.flying_wheel = PreferenceFlyingWheel()
+        self._counter = 0
 
-    def initialize_population(self, templates: list[dict]):
-        """从模板初始化种群"""
+    def _next_id(self, prefix: str) -> str:
+        self._counter += 1
+        return f"{prefix}_{self._counter:06d}"
+
+    @staticmethod
+    def _from_template(template: dict, idea_id: str) -> ProductIdea:
+        return ProductIdea(
+            id=idea_id,
+            category=template.get("category", "家居"),
+            price_tier=template.get("price_tier", "中价"),
+            style=template.get("style", "简约"),
+            target_audience=template.get("target_audience", "Z世代"),
+            material=template.get("material", "塑料"),
+            features=list(template.get("features", ["便携"])),
+        )
+
+    def initialize_population(self, templates: list[dict], attribute_pool: dict) -> None:
+        if not templates:
+            raise ValueError("at least one template is required")
         self.population = []
-        for i, t in enumerate(templates):
-            idea = ProductIdea(
-                id=f"gen0_{i}",
-                category=t.get("category", "家居"),
-                price_tier=t.get("price_tier", "中价"),
-                style=t.get("style", "简约"),
-                target_audience=t.get("target_audience", "Z世代"),
-                material=t.get("material", "塑料"),
-                features=t.get("features", ["便携"]),
-            )
-            idea.dfm_score = self.dfm_engine.evaluate(idea)
-            self.population.append(idea)
+        for index in range(self.population_size):
+            base = self._from_template(templates[index % len(templates)], self._next_id("gen0"))
+            if index >= len(templates):
+                base = self.mutate(base, attribute_pool, force=True)
+            base.dfm_score = self.dfm_engine.evaluate(base)
+            self.population.append(base)
 
-    def evaluate(self, idea: ProductIdea, score_fn: Optional[Callable] = None) -> float:
-        """
-        评估适应度
+    def _novelty(self, idea: ProductIdea, population: list[ProductIdea]) -> float:
+        signatures = [
+            {
+                item.category,
+                item.price_tier,
+                item.style,
+                item.target_audience,
+                item.material,
+                *item.features,
+            }
+            for item in population
+            if item.id != idea.id
+        ]
+        if not signatures:
+            return 1.0
+        target = {
+            idea.category,
+            idea.price_tier,
+            idea.style,
+            idea.target_audience,
+            idea.material,
+            *idea.features,
+        }
+        similarities = [len(target & other) / len(target | other) for other in signatures]
+        nearest_similarity = max(similarities)
+        return float(np.clip(1.0 - nearest_similarity, 0, 1))
 
-        score_fn: LLM 评分函数 (返回爆品概率)
-        """
-        if score_fn:
-            hit_prob = score_fn(idea.to_prompt())
-        else:
-            # 默认: 综合 DFM + 随机变异
-            hit_prob = 0.3 + 0.4 * idea.dfm_score + 0.3 * np.random.random()
-
-        # 飞轮加权
+    def score_population(
+        self,
+        score_fn: Callable[[str], float] | None = None,
+    ) -> list[float]:
+        composite_scores = []
         weights = self.flying_wheel.get_weights()
-        diversity = np.std([hash(idea.to_prompt()) % 100 for _ in range(3)]) / 100
-
-        return 0.5 * hit_prob + 0.3 * idea.dfm_score + 0.2 * diversity
+        for idea in self.population:
+            idea.dfm_score = self.dfm_engine.evaluate(idea)
+            if score_fn is not None:
+                idea.hit_score = float(np.clip(score_fn(idea.to_prompt()), 0, 1))
+            else:
+                # Transparent heuristic for an offline demo; production injects a model.
+                idea.hit_score = float(
+                    np.clip(
+                        0.30
+                        + 0.18 * (idea.style in {"国潮", "IP联名"})
+                        + 0.12 * (idea.category in {"家居", "美妆", "玩具"})
+                        + 0.08 * min(len(set(idea.features)), 4)
+                        - 0.10 * (idea.price_tier == "高价"),
+                        0,
+                        1,
+                    )
+                )
+            idea.novelty_score = self._novelty(idea, self.population)
+            composite_scores.append(float(np.dot(weights, idea.objectives)))
+        return composite_scores
 
     def select(self, fitness: list[float]) -> list[ProductIdea]:
-        """锦标赛选择"""
+        if len(fitness) != len(self.population):
+            raise ValueError("fitness must align with population")
         selected = []
-        k = 3  # 锦标赛大小
-
+        tournament_size = min(3, len(self.population))
         for _ in range(self.population_size):
-            idx = np.random.choice(len(self.population), k, replace=False)
-            winner = idx[np.argmax([fitness[i] for i in idx])]
-            selected.append(self.population[winner])
-
+            candidates = self.rng.choice(len(self.population), tournament_size, replace=False)
+            winner = max(candidates, key=lambda index: fitness[int(index)])
+            selected.append(self.population[int(winner)])
         return selected
 
     def crossover(self, parent1: ProductIdea, parent2: ProductIdea) -> ProductIdea:
-        """单点交叉"""
-        if np.random.random() > self.crossover_rate:
-            return parent1
-
-        child = ProductIdea(
-            id=f"child_{np.random.randint(10000)}",
-            category=parent1.category if np.random.random() > 0.5 else parent2.category,
-            price_tier=parent1.price_tier if np.random.random() > 0.5 else parent2.price_tier,
-            style=parent1.style if np.random.random() > 0.5 else parent2.style,
-            target_audience=parent1.target_audience if np.random.random() > 0.5 else parent2.target_audience,
-            material=parent1.material if np.random.random() > 0.5 else parent2.material,
-            features=np.random.choice(parent1.features, len(parent1.features)).tolist(),
+        if self.rng.random() > self.crossover_rate:
+            child = deepcopy(parent1)
+            child.id = self._next_id("clone")
+            return child
+        feature_pool = list(dict.fromkeys(parent1.features + parent2.features))
+        n_features = max(
+            1, min(len(feature_pool), round((len(parent1.features) + len(parent2.features)) / 2))
         )
-
+        chosen_features = self.rng.choice(feature_pool, n_features, replace=False).tolist()
+        child = ProductIdea(
+            id=self._next_id("child"),
+            category=self.rng.choice([parent1.category, parent2.category]),
+            price_tier=self.rng.choice([parent1.price_tier, parent2.price_tier]),
+            style=self.rng.choice([parent1.style, parent2.style]),
+            target_audience=self.rng.choice([parent1.target_audience, parent2.target_audience]),
+            material=self.rng.choice([parent1.material, parent2.material]),
+            features=chosen_features,
+        )
         child.dfm_score = self.dfm_engine.evaluate(child)
         return child
 
-    def mutate(self, idea: ProductIdea, attribute_pool: dict) -> ProductIdea:
-        """变异"""
-        if np.random.random() > self.mutation_rate:
-            return idea
+    def mutate(self, idea: ProductIdea, attribute_pool: dict, force: bool = False) -> ProductIdea:
+        mutated = deepcopy(idea)
+        mutated.id = self._next_id("mutant")
+        if not force and self.rng.random() > self.mutation_rate:
+            return mutated
 
-        mutated = ProductIdea(
-            id=idea.id,
-            category=np.random.choice(attribute_pool.get("categories", [idea.category])),
-            price_tier=np.random.choice(attribute_pool.get("price_tiers", [idea.price_tier])),
-            style=np.random.choice(attribute_pool.get("styles", [idea.style])),
-            target_audience=np.random.choice(attribute_pool.get("audiences", [idea.target_audience])),
-            material=np.random.choice(attribute_pool.get("materials", [idea.material])),
-            features=idea.features.copy(),
-        )
+        fields = [
+            ("category", "categories"),
+            ("price_tier", "price_tiers"),
+            ("style", "styles"),
+            ("target_audience", "audiences"),
+            ("material", "materials"),
+        ]
+        attribute, pool_key = fields[int(self.rng.integers(0, len(fields)))]
+        pool = list(attribute_pool.get(pool_key, [getattr(mutated, attribute)]))
+        if pool:
+            setattr(mutated, attribute, str(self.rng.choice(pool)))
 
-        if np.random.random() > 0.5 and attribute_pool.get("features"):
-            mutated.features = np.random.choice(
-                attribute_pool["features"],
-                min(len(idea.features) + 1, 5),
-                replace=False,
-            ).tolist()
-
+        if attribute_pool.get("features") and (force or self.rng.random() < 0.6):
+            feature_pool = list(dict.fromkeys(attribute_pool["features"]))
+            target_size = min(
+                max(1, len(mutated.features) + int(self.rng.choice([-1, 0, 1]))),
+                min(5, len(feature_pool)),
+            )
+            mutated.features = self.rng.choice(feature_pool, target_size, replace=False).tolist()
         mutated.dfm_score = self.dfm_engine.evaluate(mutated)
         return mutated
+
+    @staticmethod
+    def pareto_front(population: list[ProductIdea]) -> list[ProductIdea]:
+        return [
+            candidate
+            for candidate in population
+            if not any(
+                other.id != candidate.id and _dominates(other, candidate) for other in population
+            )
+        ]
 
     def run(
         self,
         templates: list[dict],
         attribute_pool: dict,
-        score_fn: Optional[Callable] = None,
+        score_fn: Callable[[str], float] | None = None,
     ) -> list[ProductIdea]:
-        """
-        运行进化循环
+        self.initialize_population(templates, attribute_pool)
+        elite_count = min(5, max(1, self.population_size // 10))
 
-        Args:
-            templates: 初始种群模板
-            attribute_pool: 变异属性池
-            score_fn: 评分函数
-
-        Returns:
-            帕累托最优创意列表
-        """
-        self.initialize_population(templates)
-
-        for gen in range(self.n_generations):
-            # 评估
-            fitness = [self.evaluate(ind, score_fn) for ind in self.population]
-
-            # 记录
-            self.history[gen] = fitness
-
-            # 选择
+        for generation in range(self.n_generations):
+            fitness = self.score_population(score_fn)
+            front = self.pareto_front(self.population)
+            self.history[generation] = {
+                "mean_composite": float(np.mean(fitness)),
+                "max_composite": float(np.max(fitness)),
+                "pareto_size": len(front),
+            }
             selected = self.select(fitness)
+            elites = [
+                deepcopy(self.population[index]) for index in np.argsort(fitness)[-elite_count:]
+            ]
+            children: list[ProductIdea] = []
+            cursor = 0
+            while len(children) < self.population_size - elite_count:
+                first = selected[cursor % len(selected)]
+                second = selected[(cursor + 1) % len(selected)]
+                children.append(self.mutate(self.crossover(first, second), attribute_pool))
+                cursor += 2
+            self.population = elites + children
 
-            # 交叉 + 变异
-            new_population = []
-            for i in range(0, self.population_size, 2):
-                p1, p2 = selected[i], selected[(i + 1) % len(selected)]
-                child = self.crossover(p1, p2)
-                child = self.mutate(child, attribute_pool)
-                new_population.append(child)
-
-            # 精英保留
-            elite_idx = np.argsort(fitness)[-5:]
-            for idx in elite_idx:
-                new_population[np.random.randint(len(new_population))] = self.population[idx]
-
-            self.population = new_population
-
-            if gen % 10 == 0:
-                print(f"进化 [{gen}/{self.n_generations}] 平均适应度: {np.mean(fitness):.4f}")
-
-        # 返回最终种群 (按适应度排序)
-        final_fitness = [self.evaluate(ind, score_fn) for ind in self.population]
-        best_idx = np.argsort(final_fitness)[::-1]
-        pareto_front = [self.population[i] for i in best_idx[:20]]
-
-        return pareto_front
+        final_fitness = self.score_population(score_fn)
+        front = self.pareto_front(self.population)
+        fitness_by_id = {
+            idea.id: score for idea, score in zip(self.population, final_fitness, strict=True)
+        }
+        return sorted(front, key=lambda idea: fitness_by_id[idea.id], reverse=True)

@@ -1,3 +1,3 @@
-from .granger import GrangerCausalAnalyzer, SocialSalesCorrelation
+from .granger import GrangerCausalAnalyzer, GrangerLeadAnalyzer, SocialSalesCorrelation
 
-__all__ = ["GrangerCausalAnalyzer", "SocialSalesCorrelation"]
+__all__ = ["GrangerCausalAnalyzer", "GrangerLeadAnalyzer", "SocialSalesCorrelation"]

@@ -1,62 +1,42 @@
-# 📚 参考资料与文献清单
+# 经核验的参考文献与权威资料
 
-> **负责人：队友 C**
-> **支撑技术的学术和行业文献**
+本清单只保留可定位的官方资料、论文或正式工作论文。引用时请使用原始链接并保留论文限定条件。
 
----
+## 业务背景
 
-## 核心文献
+1. MINISO Group Holding Limited. *Annual Report 2025*. 2026. [官方 PDF](https://ir.miniso.com/image/Annual+Report+2025+US.pdf)
+   相关事实：截至 2025 财年，MINISO 品牌平均每月推出约 1,600 个 SKU；公司将持续创新、成功上新和响应消费者偏好列为关键能力与风险。
 
-### 1. AI 产品开发
+## LLM 模拟与消费者研究
 
-1. **"Generative AI in Product Development: A Survey"** - ACM Computing Surveys, 2024
-2. **"AI-Driven Innovation: From Trend Detection to Product Launch"** - Harvard Business Review, 2023
-3. **"Large Language Models for Product Concept Generation"** - arXiv:2403.12345
+2. Argyle, L. P., et al. “Out of One, Many: Using Language Models to Simulate Human Samples.” *Political Analysis*, 2023. [DOI](https://doi.org/10.1017/pan.2023.2)
+3. Horton, J. J. *Large Language Models as Simulated Economic Agents: What Can We Learn from Homo Silicus?* NBER Working Paper 31122, 2023. [DOI](https://doi.org/10.3386/w31122)
 
-### 2. 回测与评估
+## 进化搜索与偏好优化
 
-4. **"Time Series Cross-Validation: An Evaluation of Methods"** - JMLR, 2020
-5. **"Precision-Recall Trade-offs in Product Recommendation"** - KDD, 2022
-6. **"NDCG and Its Variants for Ranking Evaluation"** - ACM TOIS, 2021
+4. Romera-Paredes, B., et al. “Mathematical Discoveries from Program Search with Large Language Models.” *Nature*, 2024. [DOI](https://doi.org/10.1038/s41586-023-06924-6)
+5. Rafailov, R., et al. “Direct Preference Optimization: Your Language Model is Secretly a Reward Model.” *NeurIPS 2023*. [arXiv](https://arxiv.org/abs/2305.18290)
 
-### 3. 虚拟面板校准
+## 不确定性与排序评估
 
-7. **"Conformal Prediction: A Unified Review"** - JMLR, 2023
-8. **"Bootstrap Methods: A Review"** - Statistical Science, 2020
-9. **"Calibration of Language Model Predictions"** - ICML, 2024
+6. Angelopoulos, A. N., and Bates, S. “A Gentle Introduction to Conformal Prediction and Distribution-Free Uncertainty Quantification.” 2021. [arXiv](https://arxiv.org/abs/2107.07511)
+7. Järvelin, K., and Kekäläinen, J. “Cumulated Gain-based Evaluation of IR Techniques.” *ACM TOIS*, 2002. [DOI](https://doi.org/10.1145/582415.582418)
 
-### 4. 因果推断
+## 时间序列领先性
 
-10. **"Granger Causality: Theory and Applications"** - Econometrica, 1969
-11. **"Causal Inference in Time Series"** - Annual Review of Statistics, 2022
-12. **"From Correlation to Causation in Marketing Analytics"** - Marketing Science, 2023
+8. Granger, C. W. J. “Investigating Causal Relations by Econometric Models and Cross-spectral Methods.” *Econometrica*, 1969. [DOI](https://doi.org/10.2307/1912791)
 
-### 5. 进化算法
+## AI 治理与安全
 
-13. **"Multi-Objective Optimization Using Evolutionary Algorithms"** - Springer, 2001
-14. **"Pareto Front Estimation for Product Portfolio Optimization"** - IEEE TEC, 2023
+9. NIST. *Artificial Intelligence Risk Management Framework 1.0*. 2023. [DOI](https://doi.org/10.6028/NIST.AI.100-1)
+10. NIST. *Generative Artificial Intelligence Profile*. NIST AI 600-1, 2024. [DOI](https://doi.org/10.6028/NIST.AI.600-1)
+11. OWASP Foundation. *Top 10 for Large Language Model Applications*. [项目页](https://owasp.org/www-project-top-10-for-large-language-model-applications/)
+12. ISO. *ISO/IEC 42001:2023 - Artificial intelligence management system*. [标准页](https://www.iso.org/standard/81230.html)
+13. Mitchell, M., et al. “Model Cards for Model Reporting.” *FAT* 2019. [DOI](https://doi.org/10.1145/3287560.3287596)
 
-### 6. 零售/消费品
+## 使用说明
 
-15. **"MINISO: The Chinese 'MUJI' in the Fast-Changing Retail Landscape"** - Forbes, 2023
-16. **"Product Lifecycle Management in Fast Fashion"** - J. Operations Management, 2022
-17. **"Social Media Analytics for Demand Forecasting"** - MIS Quarterly, 2023
-
-## 技术框架
-
-| 库/工具 | 用途 | 版本 |
-|---------|------|------|
-| statsmodels | Granger因果、ADF检验 | ≥0.14 |
-| scikit-learn | 校准回归、Bootstrap | ≥1.3 |
-| pymoo | 多目标优化 | ≥0.6 |
-| matplotlib/seaborn | 图表生成 | ≥3.7 |
-| sentence-transformers | 文本嵌入 | ≥2.2 |
-| Ollama | 本地LLM推理 | 最新版 |
-
-## 数据来源建议
-
-> 真实数据可补充以下来源：
-> - 名创优品公开财报/招股书
-> - 小红书/抖音热榜 API
-> - 百度指数/微信指数
-> - 天猫/京东品类销售数据
+- Granger 检验说明预测领先性，不自动证明结构因果；
+- 保形覆盖依赖交换性等条件，时间漂移下需重新校准；
+- LLM 模拟研究不能直接证明某个商业 persona 有外部效度；
+- NIST、OWASP 和 ISO 是治理参考，不代表本项目已经合规认证。

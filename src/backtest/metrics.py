@@ -1,11 +1,38 @@
-"""
-回测评估指标
-==========
-Precision@K / Lift / NDCG 计算
+"""Ranking metrics used by the time-machine backtest.
+
+All public functions validate their inputs.  Silent truncation and empty-array
+division are particularly dangerous in an offline evaluation because they can
+turn a broken experiment into a plausible-looking score.
 """
 
+from collections.abc import Sequence
+
 import numpy as np
-from typing import Sequence
+
+
+def _validate_inputs(
+    y_true: Sequence[int],
+    y_score: Sequence[float],
+    k: int,
+) -> tuple[np.ndarray, np.ndarray, int]:
+    """Return validated one-dimensional arrays and an effective ``k``."""
+    truth = np.asarray(y_true)
+    scores = np.asarray(y_score, dtype=float)
+
+    if truth.ndim != 1 or scores.ndim != 1:
+        raise ValueError("y_true and y_score must be one-dimensional")
+    if len(truth) == 0:
+        raise ValueError("y_true and y_score must not be empty")
+    if len(truth) != len(scores):
+        raise ValueError("y_true and y_score must have the same length")
+    if k <= 0:
+        raise ValueError("k must be a positive integer")
+    if not np.isfinite(scores).all():
+        raise ValueError("y_score contains NaN or infinite values")
+    if not np.isin(truth, [0, 1]).all():
+        raise ValueError("y_true must contain binary labels 0 or 1")
+
+    return truth.astype(int), scores, min(k, len(truth))
 
 
 def compute_precision_at_k(
@@ -24,12 +51,11 @@ def compute_precision_at_k(
     Returns:
         Precision@K = TP@K / K
     """
-    if len(y_true) < k:
-        k = len(y_true)
+    truth, scores, k = _validate_inputs(y_true, y_score, k)
 
-    # 按得分降序排列
-    top_k_idx = np.argsort(y_score)[::-1][:k]
-    top_k_true = np.array(y_true)[top_k_idx]
+    # ``mergesort`` is stable, so ties remain reproducible.
+    top_k_idx = np.argsort(-scores, kind="mergesort")[:k]
+    top_k_true = truth[top_k_idx]
 
     return float(top_k_true.sum() / k)
 
@@ -47,12 +73,27 @@ def compute_lift(
     Returns:
         Lift@K 值
     """
-    base_rate = np.mean(y_true)
+    truth, scores, k = _validate_inputs(y_true, y_score, k)
+    base_rate = np.mean(truth)
     if base_rate == 0:
-        return 1.0
+        return 0.0
 
-    prec_k = compute_precision_at_k(y_true, y_score, k)
+    prec_k = compute_precision_at_k(truth, scores, k)
     return prec_k / base_rate
+
+
+def compute_recall_at_k(
+    y_true: Sequence[int],
+    y_score: Sequence[float],
+    k: int = 20,
+) -> float:
+    """Compute the share of all positives recovered in the top ``k``."""
+    truth, scores, k = _validate_inputs(y_true, y_score, k)
+    positives = int(truth.sum())
+    if positives == 0:
+        return 0.0
+    order = np.argsort(-scores, kind="mergesort")[:k]
+    return float(truth[order].sum() / positives)
 
 
 def compute_ndcg(
@@ -66,14 +107,10 @@ def compute_ndcg(
     NDCG = DCG / IDCG
     DCG = sum((2^rel_i - 1) / log2(i+1))
     """
-    if len(y_true) < k:
-        k = len(y_true)
-
-    y_true = np.array(y_true)
-    y_score = np.array(y_score)
+    y_true, y_score, k = _validate_inputs(y_true, y_score, k)
 
     # 按得分排序
-    order = np.argsort(y_score)[::-1]
+    order = np.argsort(-y_score, kind="mergesort")
     rel = y_true[order][:k]
 
     # DCG
@@ -82,7 +119,7 @@ def compute_ndcg(
         dcg += (2**r - 1) / np.log2(i + 2)  # i+2 because log2(1)=0
 
     # IDCG (理想排序)
-    ideal_order = np.argsort(y_true)[::-1]
+    ideal_order = np.argsort(-y_true, kind="mergesort")
     ideal_rel = y_true[ideal_order][:k]
     idcg = 0.0
     for i, r in enumerate(ideal_rel):
@@ -111,9 +148,8 @@ def compute_all_metrics(
     metrics = {}
     for k in ks:
         metrics[f"precision@{k}"] = compute_precision_at_k(y_true, y_score, k)
+        metrics[f"recall@{k}"] = compute_recall_at_k(y_true, y_score, k)
         metrics[f"lift@{k}"] = compute_lift(y_true, y_score, k)
-
-    metrics["ndcg@20"] = compute_ndcg(y_true, y_score, 20)
-    metrics["ndcg@50"] = compute_ndcg(y_true, y_score, 50)
+        metrics[f"ndcg@{k}"] = compute_ndcg(y_true, y_score, k)
 
     return metrics

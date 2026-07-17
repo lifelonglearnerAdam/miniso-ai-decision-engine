@@ -1,3 +1,15 @@
-from .engine import EvolutionEngine, PreferenceFlyingWheel
+from .engine import (
+    DFMConstraintEngine,
+    DFMRule,
+    EvolutionEngine,
+    PreferenceFlyingWheel,
+    ProductIdea,
+)
 
-__all__ = ["EvolutionEngine", "PreferenceFlyingWheel"]
+__all__ = [
+    "DFMConstraintEngine",
+    "DFMRule",
+    "EvolutionEngine",
+    "PreferenceFlyingWheel",
+    "ProductIdea",
+]

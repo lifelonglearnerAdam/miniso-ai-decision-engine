@@ -1,42 +1,38 @@
-# 贡献指南 / Contributing Guide
+# 贡献指南
 
-## 团队分工 Team Roles
+感谢参与。项目优先级是**可验证、可复现、口径真实**。
 
-| 角色 | 负责人 | 主要负责 |
-|------|--------|---------|
-| **队友 A** | TBD | Agent 架构、Prompt Chain、时光机回测 Protocol |
-| **队友 B** | TBD | 回测实验、Precision@20/Lift/NDCG 实现 |
-| **队友 C** | TBD | 行业分析、竞品对标、Granger 因果、DFM 规则库、文献 |
+## 本地流程
 
-## 分支策略 Branch Strategy
-
-```
-main          — 稳定版本，需 PR review 后合并
-├── feat/     — 新功能 (feat/backtest-engine, feat/evolution-engine)
-├── fix/      — 修复
-└── docs/     — 文档更新
+```bash
+python -m venv .venv
+# Windows: .venv\Scripts\activate
+# macOS/Linux: source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
+ruff check src scripts tests
+pytest -q
 ```
 
-## 开发流程 Workflow
+## 分支与提交
 
-1. `git checkout -b feat/your-feature-name`
-2. 编写代码 + 测试
-3. `git push origin feat/your-feature-name`
-4. 在 GitHub 上创建 Pull Request
-5. @ 相关队友 Review
+- `feat/...`：功能；`fix/...`：修复；`docs/...`：文档；
+- 提交格式：`type(scope): description`；
+- Pull Request 说明动机、证据、风险和回滚；
+- 算法改动必须包含测试和可复现实验；
+- 指标改动必须说明数据、窗口、基线和统计口径。
 
-## 代码规范 Code Style
+## 证据规则
 
-- Python: 遵循 PEP 8，使用 `black` 格式化
-- 所有函数需有 Type Hint + Docstring
-- 关键算法需有单元测试
+- 合成数据结果必须标注 `synthetic_demo`；
+- 不得把目标值写成已实现 KPI；
+- 不得提交真实个人信息、未发布商品、供应商报价、合同或凭据；
+- 引用应能定位到原始论文、官方报告或标准；
+- Granger 不写成结构因果，LLM persona 不写成真实人群代表。
 
-## 提交信息规范 Commit Message
+## 代码要求
 
-```
-<type>(<scope>): <description>
-
-feat(backtest): 实现滚动时间窗回测
-fix(panel): 方差修正除零错误
-docs(analysis): 更新 Granger 因果结果
-```
+- Python 3.10+，类型提示和简洁 docstring；
+- 随机过程使用显式种子；
+- 不静默吞掉评估错误；
+- 数据列要区分特征、标签和未来结果；
+- 高影响写操作不得直接接入 Agent。

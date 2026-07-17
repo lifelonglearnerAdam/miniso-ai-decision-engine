@@ -16,8 +16,8 @@ python3 --version || { echo "请安装 Python 3.10+"; exit 1; }
 # 2. 创建虚拟环境
 echo ""
 echo "[2/4] 创建虚拟环境..."
-if [ ! -d "venv" ]; then
-    python3 -m venv venv
+if [ ! -d ".venv" ]; then
+    python3 -m venv .venv
     echo "虚拟环境已创建"
 else
     echo "虚拟环境已存在，跳过"
@@ -26,8 +26,8 @@ fi
 # 3. 安装依赖
 echo ""
 echo "[3/4] 安装 Python 依赖..."
-source venv/bin/activate
-pip install -r requirements.txt -q
+source .venv/bin/activate
+python -m pip install -r requirements-dev.txt
 echo "依赖安装完成"
 
 # 4. Ollama
@@ -43,11 +43,13 @@ fi
 
 # 5. 运行回测
 echo ""
-echo "运行回测测试..."
+echo "运行质量门禁与合成回测..."
+ruff check src scripts tests
+pytest -q
 python scripts/run_backtest.py
 
 echo ""
 echo "========================================"
 echo " 环境安装完成！"
-echo " 运行完整管线: python src/pipeline/run_all.py"
+echo " 运行完整管线: python -m src.pipeline.run_all"
 echo "========================================"

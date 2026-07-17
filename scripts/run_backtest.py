@@ -1,166 +1,161 @@
 #!/usr/bin/env python3
-"""
-运行时光机回测，生成 Precision@K/Lift/NDCG 图表
-=============================================
-用法: python scripts/run_backtest.py
-"""
+"""Run the reproducible synthetic backtest and publish judge-facing artifacts."""
 
+from __future__ import annotations
+
+import argparse
+import json
 import sys
-import os
+from dataclasses import asdict
+from pathlib import Path
 
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import numpy as np
 import matplotlib
-matplotlib.use("Agg")  # 无 GUI 后端
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import matplotlib.ticker as mticker
+import pandas as pd
 
-from src.backtest import TimeMachineBacktest, BacktestConfig
-from src.pipeline.data_generator import generate_miniso_sample_data
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
+from src.backtest import BacktestConfig, TabularHitPredictor, TimeMachineBacktest  # noqa: E402
+from src.pipeline.data_generator import generate_miniso_sample_data  # noqa: E402
 
-def smart_predictor(train_df, pred_df):
-    """智能预测器：基于产品属性打分"""
-    scores = []
-    for _, row in pred_df.iterrows():
-        base = 0.1
-        if row.get("social_score", 0) > 0.7:
-            base += 0.3
-        if row.get("style") in ["国潮", "IP联名"]:
-            base += 0.15
-        if row.get("category") in ["美妆", "家居"]:
-            base += 0.1
-        if row.get("day_on_market", 30) < 7:
-            base -= 0.1
-        scores.append(min(base + np.random.random() * 0.2, 1.0))
-    return np.array(scores)
+DISCLAIMER = (
+    "Synthetic demonstration only. The scores validate code paths and leakage "
+    "controls; they are not MINISO production KPIs or evidence of business uplift."
+)
 
 
-def plot_metrics(random_results, smart_results, output_dir="."):
-    """绘制回测指标对比图"""
-    fig, axes = plt.subplots(2, 2, figsize=(14, 10))
-    fig.suptitle("时光机回测结果 — Precision@K / Lift / NDCG", fontsize=16)
-
-    # Precision@20
-    ax = axes[0, 0]
-    ts = smart_results.timestamps
-    ax.plot(ts, random_results.metrics.get("precision@20", []), "o-", label="随机基线", alpha=0.6)
-    ax.plot(ts, smart_results.metrics.get("precision@20", []), "s-", label="AI智能预测", linewidth=2)
-    ax.set_title("Precision@20 (滚动时间窗)")
-    ax.set_xlabel("时间窗")
-    ax.set_ylabel("Precision@20")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
-
-    # Lift@20
-    ax = axes[0, 1]
-    ax.plot(ts, random_results.metrics.get("lift@20", []), "o-", label="随机基线", alpha=0.6)
-    ax.plot(ts, smart_results.metrics.get("lift@20", []), "s-", label="AI智能预测", linewidth=2)
-    ax.axhline(y=1.0, color="gray", linestyle="--", label="无提升 (Lift=1)")
-    ax.set_title("Lift@20")
-    ax.set_xlabel("时间窗")
-    ax.set_ylabel("Lift")
-    ax.legend()
-    ax.grid(True, alpha=0.3)
-    plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha="right")
-
-    # NDCG
-    ax = axes[1, 0]
-    ndcg_data = {
-        "Random@20": [random_results.avg_metrics.get("ndcg@20", 0)],
-        "AI@20": [smart_results.avg_metrics.get("ndcg@20", 0)],
-        "Random@50": [random_results.avg_metrics.get("ndcg@50", 0)],
-        "AI@50": [smart_results.avg_metrics.get("ndcg@50", 0)],
-    }
-    x = np.arange(len(ndcg_data))
-    bars = ax.bar(x, [v[0] for v in ndcg_data.values()], width=0.5)
-    bars[1].set_color("#FF6B6B")
-    bars[3].set_color("#FF6B6B")
-    ax.set_xticks(x)
-    ax.set_xticklabels(ndcg_data.keys())
-    ax.set_title("NDCG@K 对比")
-    ax.set_ylabel("NDCG")
-    ax.axhline(y=0.5, color="gray", linestyle="--", alpha=0.5)
-    ax.grid(True, alpha=0.3, axis="y")
-    for bar, val in zip(bars, ndcg_data.values()):
-        ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01,
-                f"{val[0]:.3f}", ha="center", va="bottom", fontsize=10)
-
-    # 摘要
-    ax = axes[1, 1]
-    ax.axis("off")
-    summary_lines = [
-        "📊 回测摘要",
-        "",
-        f"回测窗口: {len(smart_results.timestamps)}",
-        f"训练/间隔/预测: 180d/14d/90d",
-        "",
-        "AI 预测 vs 随机基线:",
+def plot_metrics(results: dict, output_path: Path) -> None:
+    """Render a compact comparison chart using renderer-safe Latin labels."""
+    colors = {"random": "#9CA3AF", "popularity": "#F59E0B", "model": "#DC2626"}
+    labels = {"random": "Random", "popularity": "Historical rate", "model": "Tabular model"}
+    fig, axes = plt.subplots(2, 2, figsize=(13.5, 8.2))
+    fig.patch.set_facecolor("#FAFAFA")
+    panels = [
+        ("precision@20", "Precision@20"),
+        ("recall@20", "Recall@20"),
+        ("lift@20", "Lift@20"),
+        ("ndcg@20", "NDCG@20"),
     ]
-    for key in ["precision@20", "lift@20", "ndcg@20"]:
-        sv = smart_results.avg_metrics.get(key, 0)
-        rv = random_results.avg_metrics.get(key, 0)
-        diff = (sv - rv) / rv if rv > 0 else 0
-        summary_lines.append(f"  {key}: {sv:.4f} vs {rv:.4f} (↑{diff:+.1%})")
+    for axis, (metric, title) in zip(axes.flat, panels, strict=True):
+        for name, result in results.items():
+            axis.plot(
+                range(1, len(result.timestamps) + 1),
+                result.metrics[metric],
+                marker="o",
+                markersize=3.8,
+                linewidth=1.8,
+                color=colors[name],
+                label=labels[name],
+            )
+        axis.set_title(title, loc="left", fontsize=12, fontweight="bold")
+        axis.set_xlabel("Rolling window")
+        axis.grid(alpha=0.22)
+        axis.spines[["top", "right"]].set_visible(False)
+        if metric == "lift@20":
+            axis.axhline(1.0, color="#6B7280", linestyle="--", linewidth=1)
+    handles, legend_labels = axes[0, 0].get_legend_handles_labels()
+    fig.legend(
+        handles,
+        legend_labels,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.94),
+        ncol=3,
+        frameon=False,
+    )
+    fig.suptitle(
+        "Time-machine backtest | synthetic evidence level",
+        x=0.06,
+        y=0.995,
+        ha="left",
+        fontsize=16,
+        fontweight="bold",
+    )
+    fig.text(0.06, 0.015, DISCLAIMER, fontsize=8.5, color="#6B7280")
+    fig.tight_layout(rect=(0.04, 0.05, 0.98, 0.88))
+    fig.savefig(output_path, dpi=180, bbox_inches="tight", facecolor=fig.get_facecolor())
+    plt.close(fig)
 
-    summary_lines.extend([
-        "",
-        f"最佳 Precision@20: {max(smart_results.metrics.get('precision@20', [0])):.4f}",
-        f"最佳 Lift@20: {max(smart_results.metrics.get('lift@20', [1])):.4f}",
-    ])
 
-    ax.text(0.05, 0.95, "\n".join(summary_lines),
-            transform=ax.transAxes, fontsize=11, verticalalignment="top",
-            fontfamily="monospace", bbox=dict(boxstyle="round", facecolor="lightyellow"))
-
-    plt.tight_layout()
-    path = os.path.join(output_dir, "backtest_results.png")
-    plt.savefig(path, dpi=150, bbox_inches="tight")
-    print(f"[图表] 已保存: {path}")
-    plt.close()
-
-
-def main():
-    print("=" * 60)
-    print("🕰️ 时光机回测 — 生成回测实验报告图表")
-    print("=" * 60)
-
-    # 生成数据
-    print("\n[1/4] 生成合成数据...")
-    data = generate_miniso_sample_data(n_products=500, n_days=365)
-
-    # 配置
+def run_experiment(output_dir: Path, n_products: int = 2_400) -> dict:
+    data = generate_miniso_sample_data(n_products=n_products, n_days=720, seed=42)
     config = BacktestConfig(
         train_window=180,
         gap_days=14,
         pred_window=90,
         stride=30,
+        min_samples=80,
+        random_seed=2026,
     )
-
-    # 运行回测
-    print("\n[2/4] 运行随机基线...")
     backtest = TimeMachineBacktest(config)
-    random_results = backtest.run(data, backtest.random_baseline)
+    predictors = {
+        "random": backtest.random_baseline,
+        "popularity": backtest.popularity_baseline,
+        "model": TabularHitPredictor(random_state=config.random_seed),
+    }
+    results = {name: backtest.run(data, predictor) for name, predictor in predictors.items()}
 
-    print("\n[3/4] 运行 AI 智能预测...")
-    smart_results = backtest.run(data, smart_predictor)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    plot_metrics(results, output_dir / "backtest_metrics.png")
+    summary_rows = []
+    for name, result in results.items():
+        summary_rows.append({"method": name, **result.avg_metrics})
+    pd.DataFrame(summary_rows).to_csv(output_dir / "backtest_summary.csv", index=False)
 
-    # 输出摘要
-    print("\n" + "-" * 40)
-    print("随机基线:")
-    print(backtest.summary(random_results))
-    print("\nAI 智能预测:")
-    print(backtest.summary(smart_results))
+    protocol = asdict(config)
+    protocol["protected_columns"] = sorted({"is_hit", *config.leakage_cols})
 
-    # 绘图
-    print("\n[4/4] 生成图表...")
-    output_dir = os.path.join(os.path.dirname(__file__), "..", "docs", "03_回测实验报告")
-    os.makedirs(output_dir, exist_ok=True)
-    plot_metrics(random_results, smart_results, output_dir)
+    payload = {
+        "evidence_level": "synthetic_demo",
+        "disclaimer": DISCLAIMER,
+        "generated_by": "scripts/run_backtest.py",
+        "dataset": {
+            "generator": "synthetic-demo-v2",
+            "n_products": len(data),
+            "date_min": str(data["date"].min().date()),
+            "date_max": str(data["date"].max().date()),
+            "hit_rate": float(data["is_hit"].mean()),
+        },
+        "protocol": protocol,
+        "results": {
+            name: {
+                "completed_windows": len(result.timestamps),
+                "skipped_windows": result.skipped_windows,
+                "average_metrics": result.avg_metrics,
+                "window_audit": result.pred_details,
+            }
+            for name, result in results.items()
+        },
+    }
+    (output_dir / "metrics.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return payload
 
-    print("\n✅ 回测完成！图表已保存至 docs/03_回测实验报告/")
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=ROOT / "artifacts" / "demo",
+        help="Directory for JSON, CSV and PNG artifacts.",
+    )
+    parser.add_argument("--n-products", type=int, default=2_400)
+    args = parser.parse_args()
+    payload = run_experiment(args.output_dir, n_products=args.n_products)
+
+    print(DISCLAIMER)
+    print(f"Artifacts: {args.output_dir.resolve()}")
+    for name, result in payload["results"].items():
+        metrics = result["average_metrics"]
+        print(
+            f"{name:>10}: P@20={metrics['precision@20']:.3f} "
+            f"Lift@20={metrics['lift@20']:.3f} NDCG@20={metrics['ndcg@20']:.3f}"
+        )
 
 
 if __name__ == "__main__":

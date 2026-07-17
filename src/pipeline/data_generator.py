@@ -1,147 +1,134 @@
-"""
-模拟数据生成器 (Synthetic Data Generator)
-========================================
-为回测和展示生成合成名创优品产品数据。
+"""Deterministic synthetic data for local demos and automated tests.
 
-无需真实数据即可演示完整管线。
+The generated rows represent *product decisions*, not daily observations.  All
+features are available at the decision date; ``is_hit`` and ``sales_90d`` are
+future outcomes.  This separation makes the leakage contract visible and lets
+the time-machine backtest remove outcome columns before scoring candidates.
+
+Synthetic data is not evidence of real MINISO performance.
 """
+
+from __future__ import annotations
+
+from datetime import datetime, timedelta
 
 import numpy as np
 import pandas as pd
-from datetime import datetime, timedelta
+
+
+def _sigmoid(value: np.ndarray) -> np.ndarray:
+    return 1.0 / (1.0 + np.exp(-value))
 
 
 def generate_miniso_sample_data(
-    n_products: int = 1000,
-    n_days: int = 365,
+    n_products: int = 1_200,
+    n_days: int = 540,
     seed: int = 42,
 ) -> pd.DataFrame:
+    """Generate one leakage-auditable row per product decision.
+
+    ``social_score`` and ``trend_score`` are pre-launch signals.  The outcome
+    fields are sampled from a latent response model and are intentionally
+    retained so tests can verify that the evaluator hides them from predictors.
     """
-    生成合成名创优品产品数据
+    if n_products <= 0 or n_days <= 0:
+        raise ValueError("n_products and n_days must be positive")
 
-    Args:
-        n_products: 产品总数
-        n_days: 时间跨度（天）
-        seed: 随机种子
+    rng = np.random.default_rng(seed)
+    categories = np.array(["家居", "美妆", "食品", "数码配件", "文具", "玩具", "服饰配件", "香薰"])
+    price_tiers = np.array(["低价", "中价", "高价"])
+    styles = np.array(["简约", "国潮", "IP联名", "北欧风", "日系", "可爱"])
+    materials = np.array(["塑料", "金属", "陶瓷", "布料", "玻璃", "硅胶", "纸张"])
 
-    Returns:
-        DataFrame 包含:
-        - product_id, date, category, price, social_score
-        - is_hit (爆品标签), sales, trend_score, ...
-    """
-    np.random.seed(seed)
+    day_offsets = rng.integers(0, n_days, size=n_products)
+    category = rng.choice(categories, size=n_products)
+    price_tier = rng.choice(price_tiers, size=n_products, p=[0.50, 0.36, 0.14])
+    style = rng.choice(styles, size=n_products)
+    material = rng.choice(materials, size=n_products)
 
-    categories = ["家居", "美妆", "食品", "数码配件", "文具", "玩具", "服饰配件", "香薰"]
-    price_tiers = ["低价", "中价", "高价"]
-    styles = ["简约", "国潮", "IP联名", "北欧风", "日系", "可爱"]
-    materials = ["塑料", "金属", "陶瓷", "布料", "玻璃", "硅胶", "纸张"]
+    seasonal = 0.5 + 0.5 * np.sin(2 * np.pi * day_offsets / 90)
+    social_score = np.clip(rng.beta(2.2, 3.8, size=n_products) + 0.12 * seasonal, 0, 1)
+    trend_score = np.clip(
+        0.68 * social_score + 0.20 * seasonal + rng.normal(0, 0.08, n_products),
+        0,
+        1,
+    )
 
-    records = []
+    tier_price = {"低价": 19.9, "中价": 49.9, "高价": 99.0}
+    price = np.array([tier_price[tier] for tier in price_tier])
+    price *= rng.lognormal(mean=0, sigma=0.16, size=n_products)
+    cost_ratio = np.where(price_tier == "低价", 0.44, np.where(price_tier == "中价", 0.38, 0.34))
+    estimated_unit_cost = price * np.clip(rng.normal(cost_ratio, 0.04), 0.20, 0.65)
+
+    latent = (
+        -2.80
+        + 2.35 * social_score
+        + 1.05 * trend_score
+        + 0.58 * np.isin(style, ["国潮", "IP联名"])
+        + 0.34 * np.isin(category, ["美妆", "家居", "玩具"])
+        - 0.40 * (price_tier == "高价")
+        + 0.18 * seasonal
+    )
+    hit_probability = _sigmoid(latent)
+    is_hit = rng.binomial(1, hit_probability)
+
+    sales_scale = 420 + 1_800 * hit_probability + 900 * is_hit
+    sales_90d = np.maximum(0, rng.lognormal(np.log(sales_scale), 0.36)).astype(int)
+    realized_margin = np.maximum(0, (price - estimated_unit_cost) * sales_90d)
+
     start_date = datetime(2024, 1, 1)
-
-    for i in range(n_products):
-        pid = f"MINISO-{i+1:05d}"
-
-        # 产品属性
-        category = np.random.choice(categories)
-        price_tier = np.random.choice(price_tiers, p=[0.5, 0.35, 0.15])
-        style = np.random.choice(styles)
-        material = np.random.choice(materials)
-
-        # 基础爆品概率（受品类/风格影响）
-        base_hit_prob = 0.08  # 8% 爆品率
-        if style == "国潮" or style == "IP联名":
-            base_hit_prob += 0.05
-        if category == "美妆" or category == "家居":
-            base_hit_prob += 0.03
-        if price_tier == "高价":
-            base_hit_prob -= 0.03
-
-        # 生存周期内每天的数据
-        lifespan = np.random.randint(30, 180)  # 30-180天
-        for d in range(min(lifespan, n_days)):
-            date = start_date + timedelta(days=d)
-
-            # 社媒热度 (随时间波动)
-            day_factor = np.sin(2 * np.pi * d / 30) * 0.2 + 0.5
-            social_score = np.clip(
-                np.random.normal(0.3 + day_factor * 0.5, 0.15), 0, 1
-            )
-
-            # 销量（受social_score影响）
-            sales = max(0, int(np.random.gamma(2, 50 + social_score * 200)))
-
-            # 爆品标签（全生命周期标记）
-            if social_score > 0.75 and sales > 150:
-                hit_prob = 0.6
-            elif social_score > 0.6 and sales > 80:
-                hit_prob = 0.3
-            else:
-                hit_prob = base_hit_prob
-
-            is_hit = int(np.random.random() < hit_prob)
-
-            # 趋势得分
-            trend_score = social_score * 0.7 + day_factor * 0.3
-
-            records.append({
-                "product_id": pid,
-                "date": date,
-                "category": category,
-                "price_tier": price_tier,
-                "style": style,
-                "material": material,
-                "social_score": round(social_score, 4),
-                "sales": sales,
-                "is_hit": is_hit,
-                "trend_score": round(trend_score, 4),
-                "day_on_market": d + 1,
-            })
-
-    df = pd.DataFrame(records)
-    print(f"[DataGenerator] 生成 {len(df)} 条记录，{df['product_id'].nunique()} 个产品")
-    print(f"  爆品率: {df['is_hit'].mean():.1%}")
-
-    return df
+    frame = pd.DataFrame(
+        {
+            "product_id": [f"DEMO-{idx + 1:05d}" for idx in range(n_products)],
+            "date": [start_date + timedelta(days=int(offset)) for offset in day_offsets],
+            "category": category,
+            "price_tier": price_tier,
+            "style": style,
+            "material": material,
+            "price": np.round(price, 2),
+            "estimated_unit_cost": np.round(estimated_unit_cost, 2),
+            "social_score": np.round(social_score, 4),
+            "trend_score": np.round(trend_score, 4),
+            "is_hit": is_hit.astype(int),
+            "sales_90d": sales_90d,
+            "realized_margin": np.round(realized_margin, 2),
+            "data_provenance": "synthetic-demo-v2",
+        }
+    )
+    return frame.sort_values(["date", "product_id"]).reset_index(drop=True)
 
 
 def generate_social_trend_data(n_days: int = 365, seed: int = 42) -> pd.DataFrame:
-    """
-    生成社媒趋势时间序列数据
-
-    用于 Granger 因果分析演示
-    """
-    np.random.seed(seed)
+    """Generate a stationary-ish leading signal and a lagged sales response."""
+    if n_days < 30:
+        raise ValueError("n_days must be at least 30")
+    rng = np.random.default_rng(seed)
     start_date = datetime(2024, 1, 1)
     dates = [start_date + timedelta(days=i) for i in range(n_days)]
 
-    # 模拟有因果关系的社媒→销售
-    social_momentum = np.random.randn(n_days).cumsum() * 0.1
-    social_trend = 0.5 + 0.3 * np.sin(2 * np.pi * np.arange(n_days) / 30) + social_momentum
+    time = np.arange(n_days)
+    social_trend = 0.50 + 0.20 * np.sin(2 * np.pi * time / 30) + rng.normal(0, 0.07, n_days)
+    social_trend = np.clip(social_trend, 0, 1)
+    lag = 3
+    lagged_social = np.concatenate([np.repeat(social_trend[0], lag), social_trend[:-lag]])
+    sales = 80 + 260 * lagged_social + rng.normal(0, 18, n_days)
 
-    # 销售 = lag(social, 3) + noise
-    sales = np.roll(social_trend * 200, 3) + np.random.normal(0, 20, n_days)
-    sales[:3] = 0  # 前3天无数据（因为lag）
-
-    # 搜索指数、达人笔记数等
-    search_index = social_trend * 80 + np.random.normal(0, 5, n_days)
-    influencer_notes = social_trend * 50 + np.random.normal(0, 10, n_days)
-
-    df = pd.DataFrame({
-        "date": dates,
-        "social_momentum": np.clip(social_trend, 0, 1),
-        "sales": np.maximum(sales, 0).astype(int),
-        "search_index": np.maximum(search_index, 0).astype(int),
-        "influencer_notes": np.maximum(influencer_notes, 0).astype(int),
-    })
-
-    return df
+    return pd.DataFrame(
+        {
+            "date": dates,
+            "social_momentum": social_trend,
+            "sales": np.maximum(sales, 0).astype(int),
+            "search_index": np.maximum(100 * social_trend + rng.normal(0, 5, n_days), 0).astype(
+                int
+            ),
+            "influencer_notes": np.maximum(55 * social_trend + rng.normal(0, 7, n_days), 0).astype(
+                int
+            ),
+        }
+    )
 
 
 if __name__ == "__main__":
-    df = generate_miniso_sample_data()
-    print(df.head())
-    print(df.describe())
-
-    social = generate_social_trend_data()
-    print(social.head())
+    demo = generate_miniso_sample_data()
+    print(demo.head())
+    print(f"rows={len(demo)}, synthetic hit rate={demo['is_hit'].mean():.1%}")

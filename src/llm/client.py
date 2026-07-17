@@ -5,9 +5,8 @@ RTX 4090 本地推理，零 API Token 消耗。
 支持: Qwen2.5-14B/32B, bge-m3 等所有 Ollama 模型。
 """
 
-import json
 import logging
-from typing import Optional
+import os
 
 import httpx
 
@@ -19,18 +18,21 @@ class LLMClient:
 
     def __init__(
         self,
-        model: str = "qwen2.5:14b",
-        base_url: str = "http://localhost:11434",
+        model: str | None = None,
+        base_url: str | None = None,
         temperature: float = 0.7,
         max_tokens: int = 2048,
         timeout: int = 120,
     ):
-        self.model = model
-        self.base_url = base_url.rstrip("/")
+        self.model = model or os.getenv("MINISO_LLM_MODEL", "qwen2.5:14b")
+        self.base_url = (
+            base_url or os.getenv("MINISO_OLLAMA_URL", "http://localhost:11434")
+        ).rstrip("/")
         self.temperature = temperature
         self.max_tokens = max_tokens
         self.timeout = timeout
         self._client = httpx.Client(timeout=timeout)
+        self.last_call_mode = "not_called"
 
     def _ensure_ollama(self) -> bool:
         """检查 Ollama 服务是否运行"""
@@ -43,9 +45,9 @@ class LLMClient:
     def chat(
         self,
         messages: list[dict],
-        system_prompt: Optional[str] = None,
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
+        system_prompt: str | None = None,
+        temperature: float | None = None,
+        max_tokens: int | None = None,
     ) -> str:
         """
         调用本地 LLM 进行对话。
@@ -61,20 +63,21 @@ class LLMClient:
         """
         if not self._ensure_ollama():
             logger.warning("Ollama 未运行，使用模拟响应模式")
+            self.last_call_mode = "mock"
             return self._mock_chat(messages)
 
+        outbound_messages = list(messages)
+        if system_prompt:
+            outbound_messages = [{"role": "system", "content": system_prompt}, *outbound_messages]
         payload = {
             "model": self.model,
-            "messages": messages,
+            "messages": outbound_messages,
             "stream": False,
             "options": {
-                "temperature": temperature or self.temperature,
-                "num_predict": max_tokens or self.max_tokens,
+                "temperature": self.temperature if temperature is None else temperature,
+                "num_predict": self.max_tokens if max_tokens is None else max_tokens,
             },
         }
-
-        if system_prompt:
-            payload["system"] = system_prompt
 
         try:
             r = self._client.post(
@@ -83,9 +86,11 @@ class LLMClient:
             )
             r.raise_for_status()
             data = r.json()
+            self.last_call_mode = "ollama"
             return data.get("message", {}).get("content", "")
         except Exception as e:
             logger.error(f"LLM 调用失败: {e}")
+            self.last_call_mode = "mock"
             return self._mock_chat(messages)
 
     def _mock_chat(self, messages: list[dict]) -> str:
@@ -131,9 +136,12 @@ class EmbeddingClient:
 
         embeddings = []
         llm = LLMClient(base_url=self.base_url)
-        for t in texts:
-            emb = llm.generate_embedding(t, self.model)
-            embeddings.append(emb)
+        try:
+            for t in texts:
+                emb = llm.generate_embedding(t, self.model)
+                embeddings.append(emb)
+        finally:
+            llm.close()
         return embeddings
 
     def close(self):
@@ -144,8 +152,6 @@ if __name__ == "__main__":
     # 测试
     client = LLMClient()
     print(f"Ollama 可用: {client._ensure_ollama()}")
-    resp = client.chat(
-        messages=[{"role": "user", "content": "用一句话总结名创优品的商业模式。"}]
-    )
+    resp = client.chat(messages=[{"role": "user", "content": "用一句话总结名创优品的商业模式。"}])
     print(f"响应: {resp}")
     client.close()

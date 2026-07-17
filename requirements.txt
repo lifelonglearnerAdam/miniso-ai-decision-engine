@@ -1,42 +1,8 @@
-# === AI Product Decision Engine Dependencies ===
-# Install: pip install -r requirements.txt
-
-# Core ML / Data
-numpy>=1.24.0
-pandas>=2.0.0
-scikit-learn>=1.3.0
-scipy>=1.11.0
-
-# Statistics (Granger Causality, etc.)
-statsmodels>=0.14.0
-
-# Visualization
-matplotlib>=3.7.0
-seaborn>=0.12.0
-plotly>=5.15.0
-
-# LLM / Embedding (local, 4090 compatible)
-# Ollama client - does NOT consume API tokens
-# Also supports OpenAI-compatible API for testing
-httpx>=0.25.0
-
-# Text processing
-jieba>=0.42.1
-transformers>=4.36.0
-sentence-transformers>=2.2.0
-
-# Optimization (for evolution engine)
-pymoo>=0.6.0
-
-# Parallel processing
-joblib>=1.3.0
-
-# Code quality
-pytest>=7.4.0
-black>=23.0.0
-
-# Notebook
-jupyter>=1.0.0
-
-# DVC for data versioning (optional)
-# dvc>=3.0.0
+# Runtime dependencies for the reproducible offline demo.
+numpy>=1.26,<3
+pandas>=2.1,<4
+scikit-learn>=1.4,<2
+scipy>=1.11,<2
+statsmodels>=0.14,<1
+matplotlib>=3.8,<4
+httpx>=0.27,<1

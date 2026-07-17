@@ -1,16 +1,11 @@
-# Jupyter Notebooks
+# Notebooks
 
-队友可在此目录创建分析 Notebook。
+正式证据不依赖未版本化的 Notebook。核心实验由 `scripts/run_backtest.py` 生成，算法由 `tests/` 验证。
 
-## 建议 Notebook
+如果后续增加探索性 Notebook，请遵守：
 
-1. `01_行业数据分析.ipynb` — 队友 C：竞品对标可视化
-2. `02_回测结果可视化.ipynb` — 队友 B：Precision/Lift/NDCG 曲线
-3. `03_进化引擎可视化.ipynb` — 队友 A：帕累托前沿动画
-4. `04_Granger因果分析.ipynb` — 队友 C：社媒→销量因果检验
-
-启动 Jupyter:
-```bash
-pip install jupyter
-jupyter notebook
-```
+- 输入引用固定数据快照，不内嵌真实敏感数据；
+- 从干净内核可按顺序完整运行；
+- 随机种子、依赖和参数显式记录；
+- 最终指标必须迁移到脚本与测试，不能只存在于交互输出；
+- 清除凭据、个人信息、内部 URL 和无关大输出后再提交。
