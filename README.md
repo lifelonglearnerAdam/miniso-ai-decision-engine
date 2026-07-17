@@ -1,7 +1,7 @@
 # MINISO AI Product Decision Engine
 
 **面向新品研发的可回测、可校准、人在环中的 AI 决策引擎**
-AI 先锋未来人才大赛 · 三人学生团队 · 面向企业真实业务问题 · 竞赛评审版 v0.2.2
+AI 先锋未来人才大赛 · 三人学生团队 · 面向企业真实业务问题 · 竞赛评审版 v0.2.3
 
 [![Quality Gate](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB)](https://www.python.org/)
