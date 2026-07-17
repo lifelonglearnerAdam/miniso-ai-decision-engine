@@ -262,9 +262,18 @@ def create_numbering_id(doc: Document) -> int:
 
     abstract = OxmlElement("w:abstractNum")
     abstract.set(qn("w:abstractNumId"), str(abstract_id))
+    # Word may merge visually identical abstract lists unless they carry
+    # distinct namespace/template identifiers, causing later lists to continue
+    # the table-of-contents numbering. Keep each Markdown list independent.
+    nsid = OxmlElement("w:nsid")
+    nsid.set(qn("w:val"), f"{0xA11C0000 + abstract_id:08X}")
+    abstract.append(nsid)
     multi = OxmlElement("w:multiLevelType")
     multi.set(qn("w:val"), "singleLevel")
     abstract.append(multi)
+    template = OxmlElement("w:tmpl")
+    template.set(qn("w:val"), f"{0xB17E0000 + abstract_id:08X}")
+    abstract.append(template)
     level = OxmlElement("w:lvl")
     level.set(qn("w:ilvl"), "0")
     start = OxmlElement("w:start")
@@ -292,13 +301,23 @@ def create_numbering_id(doc: Document) -> int:
     p_pr.append(indent)
     level.append(p_pr)
     abstract.append(level)
-    numbering.append(abstract)
+    first_num = numbering.find(qn("w:num"))
+    if first_num is None:
+        numbering.append(abstract)
+    else:
+        numbering.insert(numbering.index(first_num), abstract)
 
     num = OxmlElement("w:num")
     num.set(qn("w:numId"), str(num_id))
     abstract_ref = OxmlElement("w:abstractNumId")
     abstract_ref.set(qn("w:val"), str(abstract_id))
     num.append(abstract_ref)
+    level_override = OxmlElement("w:lvlOverride")
+    level_override.set(qn("w:ilvl"), "0")
+    start_override = OxmlElement("w:startOverride")
+    start_override.set(qn("w:val"), "1")
+    level_override.append(start_override)
+    num.append(level_override)
     numbering.append(num)
     return num_id
 
@@ -316,6 +335,14 @@ def apply_numbering(paragraph, num_id: int) -> None:
     num_pr.append(ilvl)
     num_pr.append(num)
     p_pr.append(num_pr)
+
+
+def format_numbered_paragraph(paragraph, *, space_after: float = 8) -> None:
+    """Apply list geometry without Word's built-in List Number style linkage."""
+    paragraph.paragraph_format.left_indent = Inches(0.5)
+    paragraph.paragraph_format.first_line_indent = Inches(-0.25)
+    paragraph.paragraph_format.space_after = Pt(space_after)
+    paragraph.paragraph_format.line_spacing = 1.167
 
 
 def add_page_number(paragraph) -> None:
@@ -465,7 +492,7 @@ def add_cover(doc: Document) -> None:
         paragraph.paragraph_format.space_after = Pt(8)
     kicker = doc.add_paragraph()
     kicker.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = kicker.add_run("TECHNICAL WHITE PAPER · 竞赛评审版")
+    run = kicker.add_run("TECHNICAL WHITE PAPER · 企业级赛题评审版")
     set_run_font(run, size=10, color=GOLD, bold=True)
     kicker.paragraph_format.space_after = Pt(18)
 
@@ -488,8 +515,10 @@ def add_cover(doc: Document) -> None:
     set_run_font(run, size=10.5, color=ACCENT, bold=True)
 
     metadata = [
-        ("版本", "v1.0"),
+        ("版本", "v1.1"),
         ("日期", "2026 年 7 月 17 日"),
+        ("参赛团队", "三名学生"),
+        ("项目定位", "企业级赛题原型 · 非企业内部生产项目"),
         ("证据口径", "实现 / 合成演示 / 企业待验证"),
         ("代码仓库", "github.com/lifelonglearnerAdam/miniso-ai-decision-engine"),
     ]
@@ -521,8 +550,8 @@ def add_contents(doc: Document, markdown: str) -> None:
     ]
     toc_num_id = create_numbering_id(doc)
     for section in sections:
-        paragraph = doc.add_paragraph(style="List Number")
-        paragraph.paragraph_format.space_after = Pt(3)
+        paragraph = doc.add_paragraph()
+        format_numbered_paragraph(paragraph, space_after=3)
         apply_numbering(paragraph, toc_num_id)
         add_inline(paragraph, re.sub(r"^\d+\.\s*", "", section), base_size=10.5)
     paragraph = doc.add_paragraph(style="List Bullet")
@@ -661,6 +690,11 @@ def add_body_from_markdown(doc: Document, markdown: str, architecture_image: Pat
             text = heading_match.group(2)
             paragraph = doc.add_paragraph(style=f"Heading {min(level, 3)}")
             paragraph.clear()
+            # Explicitly reset list geometry. Word can otherwise carry a
+            # preceding list's hanging indent into a heading at a page break.
+            paragraph.paragraph_format.left_indent = Inches(0)
+            paragraph.paragraph_format.right_indent = Inches(0)
+            paragraph.paragraph_format.first_line_indent = Inches(0)
             add_inline(
                 paragraph,
                 text,
@@ -687,8 +721,9 @@ def add_body_from_markdown(doc: Document, markdown: str, architecture_image: Pat
             flush_paragraph()
             value = (numbered or bullet).group(1)
             value = value.replace("[ ]", "□").replace("[x]", "☒")
-            paragraph = doc.add_paragraph(style="List Number" if numbered else "List Bullet")
+            paragraph = doc.add_paragraph() if numbered else doc.add_paragraph(style="List Bullet")
             if numbered:
+                format_numbered_paragraph(paragraph)
                 if active_numbering_id is None:
                     active_numbering_id = create_numbering_id(doc)
                 apply_numbering(paragraph, active_numbering_id)
@@ -719,8 +754,8 @@ def add_body_from_markdown(doc: Document, markdown: str, architecture_image: Pat
 def set_document_properties(doc: Document) -> None:
     props = doc.core_properties
     props.title = "AI 产品开发引擎技术白皮书"
-    props.subject = "可回测、可校准、人在环中的新品研发决策系统"
-    props.author = "AI Pioneer Future Talent Competition Team"
+    props.subject = "三人学生团队面向企业级赛题构建的新品研发决策系统"
+    props.author = "AI Pioneer Future Talent Competition Three-Student Team"
     props.keywords = "AI产品研发, 多Agent, 时光机回测, 保形预测, DFM"
     settings = doc.settings.element
     update_fields = settings.find(qn("w:updateFields"))

@@ -4,12 +4,12 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "miniso-ai-decision-engine"
-version = "0.2.0"
+version = "0.2.1"
 description = "Leakage-aware AI product development decision engine demonstration"
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "MIT" }
-authors = [{ name = "AI Pioneer Future Talent Competition Team" }]
+authors = [{ name = "AI Pioneer Future Talent Competition Three-Student Team" }]
 dependencies = [
   "numpy>=1.26,<3",
   "pandas>=2.1,<4",

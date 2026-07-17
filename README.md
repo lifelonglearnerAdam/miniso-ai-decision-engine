@@ -1,7 +1,7 @@
 # MINISO AI Product Decision Engine
 
 **面向新品研发的可回测、可校准、人在环中的 AI 决策引擎**
-AI 先锋未来人才大赛参赛项目 · 竞赛评审版 v0.2
+AI 先锋未来人才大赛企业级赛题 · 三人学生团队 · 竞赛评审版 v0.2.1
 
 [![Quality Gate](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB)](https://www.python.org/)
@@ -9,6 +9,10 @@ AI 先锋未来人才大赛参赛项目 · 竞赛评审版 v0.2
 [![Evidence](https://img.shields.io/badge/evidence-synthetic%20demo-F59E0B)](artifacts/demo/metrics.json)
 
 > **证据声明**：仓库内回测使用可重复生成的合成数据，只验证代码路径、时间切片和防泄漏控制。它不是名创优品生产数据，不构成真实爆品命中率、收入提升或 ROI 证明。企业效果必须通过脱敏历史数据回放与前瞻试点确认。
+
+## 团队与项目定位
+
+本项目由**三名学生组成的参赛团队**独立完成，面向企业级赛题，按企业场景的问题定义、证据边界、工程质量与落地门槛进行设计。“企业级”描述的是赛题复杂度和目标交付标准；本仓库不是名创优品内部项目，也不代表系统已经进入企业生产环境。
 
 ## 评委快速入口
 
