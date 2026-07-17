@@ -492,7 +492,7 @@ def add_cover(doc: Document) -> None:
         paragraph.paragraph_format.space_after = Pt(8)
     kicker = doc.add_paragraph()
     kicker.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    run = kicker.add_run("TECHNICAL WHITE PAPER · 企业级赛题评审版")
+    run = kicker.add_run("TECHNICAL WHITE PAPER · 企业问题解决方案评审版")
     set_run_font(run, size=10, color=GOLD, bold=True)
     kicker.paragraph_format.space_after = Pt(18)
 
@@ -515,10 +515,10 @@ def add_cover(doc: Document) -> None:
     set_run_font(run, size=10.5, color=ACCENT, bold=True)
 
     metadata = [
-        ("版本", "v1.1"),
+        ("版本", "v1.2"),
         ("日期", "2026 年 7 月 17 日"),
         ("参赛团队", "三名学生"),
-        ("项目定位", "企业级赛题原型 · 非企业内部生产项目"),
+        ("项目定位", "面向企业真实问题的竞赛验证版解决方案"),
         ("证据口径", "实现 / 合成演示 / 企业待验证"),
         ("代码仓库", "github.com/lifelonglearnerAdam/miniso-ai-decision-engine"),
     ]
@@ -754,7 +754,7 @@ def add_body_from_markdown(doc: Document, markdown: str, architecture_image: Pat
 def set_document_properties(doc: Document) -> None:
     props = doc.core_properties
     props.title = "AI 产品开发引擎技术白皮书"
-    props.subject = "三人学生团队面向企业级赛题构建的新品研发决策系统"
+    props.subject = "三人学生团队帮助企业解决新品研发决策问题的竞赛验证版方案"
     props.author = "AI Pioneer Future Talent Competition Three-Student Team"
     props.keywords = "AI产品研发, 多Agent, 时光机回测, 保形预测, DFM"
     settings = doc.settings.element
