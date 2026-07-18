@@ -28,7 +28,7 @@
 
 ![合成回测对比](../../artifacts/demo/backtest_metrics.png)
 
-## 复现
+## 技术评审复现入口（业务评审可跳过）
 
 ```bash
 python -m pip install -r requirements-dev.txt
@@ -42,7 +42,7 @@ python scripts/run_backtest.py
 - [平均指标 CSV](../../artifacts/demo/backtest_summary.csv)
 - [路演图表](../../artifacts/demo/backtest_metrics.png)
 
-## 如何升级为企业证据
+## 企业证据形成路径
 
 1. 由业务确认候选宇宙、爆品标签、K、观察窗与退货/缺货处理；
 2. 冻结字段可用时间、SKU 族、基线和最终盲测期；

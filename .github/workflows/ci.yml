@@ -29,6 +29,8 @@ jobs:
         run: |
           python -m compileall -q src scripts tests
           ruff check src scripts tests
+          node --check site/app.js
+          node --check site/data.js
       - name: Tests
         run: python -m pytest -q
       - name: Reproducible smoke experiment
