@@ -5,6 +5,72 @@ window.MINISO_DEMO_DATA = {
     generatedAt: "2026-07-18T06:54:11+00:00",
     disclaimer: "合成 / 算法演示，仅验证系统路径与证据约束，不代表名创优品真实业务指标。"
   },
+  voc: {
+    totalRows: 124,
+    includedRows: 119,
+    excludedRows: 5,
+    sourceCount: 8,
+    highRelevanceRows: 91,
+    severeRows: 25,
+    xhsDetailRows: 13,
+    themes: [
+      {
+        id: "price",
+        label: "促销门槛与价格敏感",
+        count: 22,
+        share: "18.5%",
+        tone: "amber",
+        observation: "促销内容能快速带来到店和讨论，但凑单复杂度、会员限制和门店执行差异会把价格优势变成体验摩擦。",
+        action: "把优惠门槛、会员限制、履约差异作为候选风险字段，而不是只把低价当作需求加分。",
+        field: "价格带 · 促销规则 · 履约风险",
+        evidence: "22 条主题样本；不等于全体消费者的价格弹性。"
+      },
+      {
+        id: "discovery",
+        label: "产品发现与购买决策",
+        count: 19,
+        share: "16.0%",
+        tone: "red",
+        observation: "用户会因为一个角色、一种颜色或一条清晰的使用场景停下来，但是否购买取决于款式、库存、价格和现场可得性。",
+        action: "把“为什么现在买、在哪里能买到、买回去完成什么任务”写进机会卡和趋势事件。",
+        field: "场景 · 角色 · 可获得性",
+        evidence: "19 条主题样本；平台推荐机制会放大高传播内容。"
+      },
+      {
+        id: "repurchase",
+        label: "高频使用与复购价值",
+        count: 16,
+        share: "13.4%",
+        tone: "green",
+        observation: "牙线棒、浴巾、梳子、湿巾和旅行用品等反馈更常描述具体任务：耐洗、快干、降温、便携或反复购买。",
+        action: "建立任务词典，把可感知效果、使用频次与失败模式加入需求特征，优先验证“可用且值得复购”。",
+        field: "任务词 · 功能效果 · 复购信号",
+        evidence: "16 条主题样本；样本中的推荐不能外推为市场份额。"
+      },
+      {
+        id: "quality",
+        label: "质量、真伪与售后",
+        count: 11,
+        share: "9.2%",
+        tone: "blue",
+        observation: "盲盒和联名产品的风险不只来自随机性，还来自成品质感、防伪信息、破损换货和客服可达性。",
+        action: "把质量、IP 授权、售后和内容合规前置为 DFM 与上市前验证闸口，避免情绪价值掩盖信任成本。",
+        field: "DFM · IP 合规 · 售后风险",
+        evidence: "11 条主题样本；海外投诉型平台存在负向自选择。"
+      },
+      {
+        id: "character",
+        label: "角色偏好与 IP 情绪价值",
+        count: 11,
+        share: "9.2%",
+        tone: "purple",
+        observation: "评论常常问到具体角色与款式，而不是笼统地问“有没有联名”；同一系列内部的需求并不平均。",
+        action: "将预测单位从 IP 系列下钻到角色 × 品类 × 城市/门店 × 时间，保留角色差异而非做系列平均。",
+        field: "角色级需求 · 品类 · 区域",
+        evidence: "11 条主题样本；角色热度仍需与门店库存和销量对照。"
+      }
+    ]
+  },
   signals: [
     {
       id: "S-101",

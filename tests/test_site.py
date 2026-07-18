@@ -48,6 +48,30 @@ def test_site_keeps_evidence_boundary_visible() -> None:
     assert "未触发任何生产动作" in (SITE / "app.js").read_text(encoding="utf-8")
 
 
+def test_site_separates_public_voc_from_synthetic_evidence() -> None:
+    index = (SITE / "index.html").read_text(encoding="utf-8")
+    data = (SITE / "data.js").read_text(encoding="utf-8")
+    app = (SITE / "app.js").read_text(encoding="utf-8")
+
+    assert 'id="view-insights"' in index
+    assert "真实公开反馈的聚合观察" in index
+    assert "目的性采样" in index
+    assert "不与合成回测指标相加" in index
+    assert "totalRows: 124" in data
+    assert "includedRows: 119" in data
+    assert "高频使用与复购价值" in data
+    assert '"insights"' in app
+
+
+def test_readme_has_prominent_public_demo_entry() -> None:
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+
+    assert "立即在线体验" in readme
+    assert "dashboard-preview.jpg" in readme
+    assert "https://lifelonglearneradam.github.io/miniso-ai-decision-engine/" in readme
+    assert (ROOT / "docs" / "assets" / "dashboard-preview.jpg").is_file()
+
+
 def test_site_opens_with_the_decision_story() -> None:
     index = (SITE / "index.html").read_text(encoding="utf-8")
 

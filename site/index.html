@@ -26,6 +26,11 @@
           <i data-lucide="layout-dashboard" aria-hidden="true"></i>
           <span>决策总览</span>
         </button>
+        <button class="nav-item" data-view="insights" type="button">
+          <i data-lucide="message-square-quote" aria-hidden="true"></i>
+          <span>用户洞察</span>
+          <span class="nav-count">119</span>
+        </button>
         <button class="nav-item" data-view="trends" type="button">
           <i data-lucide="radar" aria-hidden="true"></i>
           <span>趋势证据</span>
@@ -61,6 +66,11 @@
         <a class="sidebar-link" href="assets/AI产品开发引擎技术白皮书.pdf" target="_blank" rel="noreferrer">
           <i data-lucide="file-text" aria-hidden="true"></i>
           技术白皮书
+          <i data-lucide="external-link" aria-hidden="true"></i>
+        </a>
+        <a class="sidebar-link" href="https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/blob/main/docs/00_%E7%94%A8%E6%88%B7%E7%9C%9F%E5%AE%9E%E5%8F%8D%E9%A6%88%E6%B4%9E%E5%AF%9F/report/miniso_user_insight_report_zh.md" target="_blank" rel="noreferrer">
+          <i data-lucide="messages-square" aria-hidden="true"></i>
+          用户洞察报告
           <i data-lucide="external-link" aria-hidden="true"></i>
         </a>
         <a class="sidebar-link" href="https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine" target="_blank" rel="noreferrer">
@@ -144,11 +154,11 @@
         </section>
 
         <div class="story-sequence" aria-label="从企业压力到人工决策的故事线">
-          <div><span>企业压力</span><strong>约 1,600</strong><small>SKU / 月</small></div>
+          <div><span>企业压力</span><strong>约 1,600</strong><small>公开年报 · SKU / 月</small></div>
           <i data-lucide="arrow-right" aria-hidden="true"></i>
-          <div><span>系统收敛</span><strong>4 → 2</strong><small>候选 → 前沿</small></div>
+          <div><span>用户观察</span><strong>119</strong><small>公开样本进入分析</small></div>
           <i data-lucide="arrow-right" aria-hidden="true"></i>
-          <div><span>证据复核</span><strong>15</strong><small>滚动窗口</small></div>
+          <div><span>算法演示</span><strong>4 → 2</strong><small>候选 → 前沿</small></div>
           <i data-lucide="arrow-right" aria-hidden="true"></i>
           <div><span>人工责任</span><strong>0</strong><small>自动执行动作</small></div>
         </div>
@@ -163,34 +173,34 @@
         </div>
 
         <div class="workflow" aria-label="决策流程">
-          <button class="workflow-step" data-jump="trends" type="button">
+          <button class="workflow-step" data-jump="insights" type="button">
             <span class="step-number">01</span>
+            <i data-lucide="message-square-quote" aria-hidden="true"></i>
+            <span><strong>观察</strong><small>公开反馈归因</small></span>
+          </button>
+          <i class="workflow-arrow" data-lucide="chevron-right" aria-hidden="true"></i>
+          <button class="workflow-step" data-jump="trends" type="button">
+            <span class="step-number">02</span>
             <i data-lucide="radar" aria-hidden="true"></i>
             <span><strong>发现</strong><small>验证领先信号</small></span>
           </button>
           <i class="workflow-arrow" data-lucide="chevron-right" aria-hidden="true"></i>
           <button class="workflow-step" data-jump="candidates" type="button">
-            <span class="step-number">02</span>
+            <span class="step-number">03</span>
             <i data-lucide="sparkles" aria-hidden="true"></i>
             <span><strong>生成</strong><small>搜索创意前沿</small></span>
           </button>
           <i class="workflow-arrow" data-lucide="chevron-right" aria-hidden="true"></i>
           <button class="workflow-step" data-jump="validation" type="button">
-            <span class="step-number">03</span>
+            <span class="step-number">04</span>
             <i data-lucide="scan-search" aria-hidden="true"></i>
             <span><strong>验证</strong><small>校准弱信号</small></span>
           </button>
           <i class="workflow-arrow" data-lucide="chevron-right" aria-hidden="true"></i>
           <button class="workflow-step" data-jump="decision" type="button">
-            <span class="step-number">04</span>
+            <span class="step-number">05</span>
             <i data-lucide="clipboard-check" aria-hidden="true"></i>
             <span><strong>决策</strong><small>人在环中审批</small></span>
-          </button>
-          <i class="workflow-arrow" data-lucide="chevron-right" aria-hidden="true"></i>
-          <button class="workflow-step" data-jump="evidence" type="button">
-            <span class="step-number">05</span>
-            <i data-lucide="history" aria-hidden="true"></i>
-            <span><strong>学习</strong><small>回测与偏好沉淀</small></span>
           </button>
         </div>
 
@@ -255,10 +265,107 @@
         </blockquote>
       </section>
 
+      <section class="view" id="view-insights" data-title="用户洞察">
+        <div class="view-heading compact">
+          <div>
+            <span class="section-kicker">01 / LISTEN</span>
+            <h1>先把用户说的，变成产品机会</h1>
+            <p>从公开可回溯样本中提取任务、角色、价格、质量与可获得性线索，为后续趋势验证和候选筛选提供问题上下文。</p>
+          </div>
+          <span class="evidence-chip voc-chip"><i data-lucide="messages-square" aria-hidden="true"></i>公开样本观察</span>
+        </div>
+
+        <div class="evidence-banner voc-banner" role="note">
+          <i data-lucide="database" aria-hidden="true"></i>
+          <div>
+            <strong>这是真实公开反馈的聚合观察，不是消费者总体统计</strong>
+            <span>124 条公开样本 · 119 条进入分析 · 目的性采样 · 不估计总体满意度，也不与合成回测指标相加。</span>
+          </div>
+          <a class="text-button" href="https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/blob/main/docs/00_%E7%94%A8%E6%88%B7%E7%9C%9F%E5%AE%9E%E5%8F%8D%E9%A6%88%E6%B4%9E%E5%AF%9F/DATA_ETHICS.md" target="_blank" rel="noreferrer">查看伦理边界</a>
+        </div>
+
+        <div class="metric-strip voc-metrics" id="voc-metrics" aria-label="公开样本概览"></div>
+
+        <div class="voc-hero-grid">
+          <section class="panel voc-thesis">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">结论先行</span>
+                <h2>“可爱且值”要同时完成五件事</h2>
+              </div>
+              <span class="state-pill success">A/B 级证据为主</span>
+            </div>
+            <div class="voc-formula" aria-label="角色吸引力乘以可负担情绪价值、可使用功能价值、可获得性和信任保障">
+              <span>角色吸引力</span><i>×</i><span>可负担</span><i>×</i><span>可使用</span><i>×</i><span>可获得</span><i>×</i><span>可信任</span>
+            </div>
+            <p>公开样本的共同信号是：IP 负责让人停下来，任务完成度、价格、质量、库存和售后决定是否购买、复购与推荐。</p>
+            <div class="voc-thesis-actions">
+              <a class="text-link" href="https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/blob/main/docs/00_%E7%94%A8%E6%88%B7%E7%9C%9F%E5%AE%9E%E5%8F%8D%E9%A6%88%E6%B4%9E%E5%AF%9F/report/miniso_user_insight_report_zh.md" target="_blank" rel="noreferrer">阅读完整研究报告 <i data-lucide="external-link" aria-hidden="true"></i></a>
+              <span class="micro-note">采集日期 2026-07-18 · 主题归纳，不展示个人身份</span>
+            </div>
+          </section>
+          <section class="panel voc-path-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">从观察到动作</span>
+                <h2>下一步进入哪个决策字段</h2>
+              </div>
+            </div>
+            <div class="voc-path">
+              <div><span>用户原话主题</span><strong>任务 / 角色 / 价格</strong></div>
+              <i data-lucide="arrow-down" aria-hidden="true"></i>
+              <div><span>结构化字段</span><strong>场景 · 品类 · 风险</strong></div>
+              <i data-lucide="arrow-down" aria-hidden="true"></i>
+              <div><span>交给算法验证</span><strong>趋势 · 候选 · DFM</strong></div>
+            </div>
+          </section>
+        </div>
+
+        <div class="voc-layout">
+          <section class="panel voc-theme-panel">
+            <div class="panel-heading">
+              <div>
+                <span class="panel-kicker">样本主题密度</span>
+                <h2>点击一个主题，看它如何变成产品动作</h2>
+              </div>
+              <span class="state-pill neutral">进入分析 119 条</span>
+            </div>
+            <div class="voc-theme-list" id="voc-theme-list" aria-label="公开反馈主题列表"></div>
+          </section>
+          <section class="panel voc-detail" id="voc-theme-detail" aria-live="polite"></section>
+        </div>
+
+        <section class="panel voc-mapping-panel">
+          <div class="panel-heading">
+            <div>
+              <span class="panel-kicker">评委可复核的转译</span>
+              <h2>公开观察如何进入决策链</h2>
+            </div>
+            <span class="state-pill review">不替代企业数据</span>
+          </div>
+          <div class="table-wrap">
+            <table class="data-table voc-mapping-table">
+              <thead><tr><th scope="col">公开观察</th><th scope="col">产品问题</th><th scope="col">引擎动作</th><th scope="col">企业验收</th></tr></thead>
+              <tbody>
+                <tr><td>高频使用与复购价值</td><td>能否一句话说清任务和效果？</td><td>建立任务词典，进入需求特征</td><td>复购、退货与真实销量盲测</td></tr>
+                <tr><td>角色级 IP 偏好</td><td>同一系列是否被平均对待？</td><td>按角色 × 品类 × 门店 × 时间切分</td><td>按 SKU 族和区域回放验证</td></tr>
+                <tr><td>促销与价格敏感</td><td>优惠带来转化还是规则摩擦？</td><td>把门槛、会员和履约列为风险</td><td>试点转化、投诉和售后成本</td></tr>
+                <tr><td>质量、真伪与售后</td><td>信任风险会否吞噬情绪价值？</td><td>DFM / 合规 / 售后前置闸口</td><td>质量缺陷率、换货与内容审核</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div class="flow-footer">
+          <span><i data-lucide="check-circle-2" aria-hidden="true"></i>用户问题已转译为待验证字段</span>
+          <button class="secondary-button" data-jump="trends" type="button">进入趋势证据 <i data-lucide="arrow-right" aria-hidden="true"></i></button>
+        </div>
+      </section>
+
       <section class="view" id="view-trends" data-title="趋势证据">
         <div class="view-heading compact">
           <div>
-            <span class="section-kicker">01 / DISCOVER</span>
+            <span class="section-kicker">02 / DISCOVER</span>
             <h1>先证明信号领先，再谈趋势</h1>
             <p>统一事件时间与入库时间，检验滞后方向和预测领先性，未通过的信号不进入创意阶段。</p>
           </div>
@@ -278,7 +385,7 @@
       <section class="view" id="view-candidates" data-title="创意前沿">
         <div class="view-heading compact">
           <div>
-            <span class="section-kicker">02 / GENERATE</span>
+            <span class="section-kicker">03 / GENERATE</span>
             <h1>比较权衡点，不迷信综合分</h1>
             <p>需求潜力、可制造性与新颖性同时保留，产品经理从非支配前沿选择，而不是让模型代替业务判断。</p>
           </div>
@@ -338,7 +445,7 @@
       <section class="view" id="view-validation" data-title="上市前验证">
         <div class="view-heading compact">
           <div>
-            <span class="section-kicker">03 / VALIDATE</span>
+            <span class="section-kicker">04 / VALIDATE</span>
             <h1>给出区间，而不是伪精确概率</h1>
             <p>虚拟面板只提供待校准的弱信号；真实观察负责锚定，独立留出数据负责区间覆盖。</p>
           </div>
@@ -386,7 +493,7 @@
       <section class="view" id="view-decision" data-title="人工决策">
         <div class="view-heading compact">
           <div>
-            <span class="section-kicker">04 / DECIDE</span>
+            <span class="section-kicker">05 / DECIDE</span>
             <h1>AI 提供证据包，人对动作负责</h1>
             <p>演示决策不会触发采购、打样、定价或上架；每次选择都记录理由、证据版本和责任边界。</p>
           </div>
@@ -417,7 +524,7 @@
       <section class="view" id="view-evidence" data-title="回测与治理">
         <div class="view-heading compact">
           <div>
-            <span class="section-kicker">05 / LEARN</span>
+            <span class="section-kicker">06 / PROVE</span>
             <h1>让评委看见证据等级与验证边界</h1>
             <p>实现、合成演示与企业待验证严格分层；失败窗口、受保护字段和协议参数均保留。</p>
           </div>
@@ -537,6 +644,21 @@
       <a href="https://www.feishu.cn/customers/PROYA_ai_case#/" target="_blank" rel="noreferrer">
         <i data-lucide="microscope" aria-hidden="true"></i>
         <span><strong>消费企业新品研发案例</strong><small>飞书官方披露的珀莱雅 AI 消费者洞察实践</small></span>
+        <i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a href="https://cy.ncss.cn/information/2c93f4c696aa01a10196eca57202006a" target="_blank" rel="noreferrer">
+        <i data-lucide="scale" aria-hidden="true"></i>
+        <span><strong>中国国际大学生创新大赛评审规则</strong><small>企业命题组：需求匹配、实现成效、项目分析与团队协作</small></span>
+        <i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a href="https://www.tiaozhanbei.net/" target="_blank" rel="noreferrer">
+        <i data-lucide="trophy" aria-hidden="true"></i>
+        <span><strong>挑战杯官方项目库</strong><small>信息技术、人工智能驱动与产业落地的公开参考口径</small></span>
+        <i data-lucide="external-link" aria-hidden="true"></i>
+      </a>
+      <a href="https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/blob/main/docs/00_%E7%94%A8%E6%88%B7%E7%9C%9F%E5%AE%9E%E5%8F%8D%E9%A6%88%E6%B4%9E%E5%AF%9F/report/miniso_user_insight_report_zh.md" target="_blank" rel="noreferrer">
+        <i data-lucide="messages-square" aria-hidden="true"></i>
+        <span><strong>公开用户洞察研究</strong><small>124 条样本、119 条进入分析、采样与伦理限制</small></span>
         <i data-lucide="external-link" aria-hidden="true"></i>
       </a>
       <a href="assets/metrics.json" target="_blank">

@@ -2,9 +2,10 @@
   "use strict";
 
   const data = window.MINISO_DEMO_DATA;
-  const validViews = ["overview", "trends", "candidates", "validation", "decision", "evidence"];
+  const validViews = ["overview", "insights", "trends", "candidates", "validation", "decision", "evidence"];
   const state = {
     view: "overview",
+    vocTheme: data.voc.themes[0].id,
     signal: data.signals[0].id,
     candidate: data.candidates[0].id,
     filter: "all",
@@ -15,6 +16,7 @@
   const byId = (id) => document.getElementById(id);
   const candidateById = (id) => data.candidates.find((item) => item.id === id) || data.candidates[0];
   const signalById = (id) => data.signals.find((item) => item.id === id) || data.signals[0];
+  const vocThemeById = (id) => data.voc.themes.find((item) => item.id === id) || data.voc.themes[0];
 
   function refreshIcons() {
     if (window.lucide) {
@@ -76,6 +78,51 @@
 
   function statusPill(label, stateClass) {
     return `<span class="state-pill ${stateClass}">${escapeHtml(label)}</span>`;
+  }
+
+  function renderVoc() {
+    const voc = data.voc;
+    const theme = vocThemeById(state.vocTheme);
+    byId("voc-metrics").innerHTML = `
+      <div class="metric-item"><span>进入洞察分析</span><strong>${voc.includedRows}</strong><small>共 ${voc.totalRows} 条，排除 ${voc.excludedRows} 条检索噪声</small></div>
+      <div class="metric-item"><span>研发高相关</span><strong>${voc.highRelevanceRows}</strong><small>样本内 76.5%，不外推总体</small></div>
+      <div class="metric-item"><span>严重度 4-5 级</span><strong>${voc.severeRows}</strong><small>样本内 21.0%，用于风险排序</small></div>
+      <div class="metric-item"><span>公开来源</span><strong>${voc.sourceCount}</strong><small>含 ${voc.xhsDetailRows} 条详情页评论主题</small></div>
+    `;
+    byId("voc-theme-list").innerHTML = voc.themes.map((item) => `
+      <button class="voc-theme-row ${item.id === state.vocTheme ? "active" : ""}" data-voc-theme="${item.id}" type="button" aria-pressed="${item.id === state.vocTheme}">
+        <span class="voc-theme-rank">${String(voc.themes.indexOf(item) + 1).padStart(2, "0")}</span>
+        <span class="voc-theme-copy"><strong>${escapeHtml(item.label)}</strong><small>本次样本主题密度</small></span>
+        <span class="voc-theme-bar"><i class="${item.tone}" style="width:${Math.round((item.count / 22) * 100)}%"></i></span>
+        <span class="voc-theme-count"><strong>${item.count}</strong><small>${item.share}</small></span>
+        <i data-lucide="chevron-right" aria-hidden="true"></i>
+      </button>
+    `).join("");
+    byId("voc-theme-detail").innerHTML = `
+      <div class="voc-detail-head">
+        <div><span class="panel-kicker">主题 ${escapeHtml(theme.id).toUpperCase()}</span><h2>${escapeHtml(theme.label)}</h2></div>
+        <span class="voc-density ${theme.tone}"><strong>${theme.count}</strong><small>条主题样本</small></span>
+      </div>
+      <div class="voc-observation">
+        <i data-lucide="quote" aria-hidden="true"></i>
+        <div><span>样本内观察</span><p>${escapeHtml(theme.observation)}</p></div>
+      </div>
+      <div class="voc-action-block">
+        <span>建议的产品动作</span>
+        <p>${escapeHtml(theme.action)}</p>
+      </div>
+      <dl class="voc-detail-meta">
+        <div><dt>进入决策字段</dt><dd>${escapeHtml(theme.field)}</dd></div>
+        <div><dt>证据边界</dt><dd>${escapeHtml(theme.evidence)}</dd></div>
+      </dl>
+    `;
+    byId("voc-theme-list").querySelectorAll("[data-voc-theme]").forEach((button) => {
+      button.addEventListener("click", () => {
+        state.vocTheme = button.dataset.vocTheme;
+        renderVoc();
+      });
+    });
+    refreshIcons();
   }
 
   function renderSignals() {
@@ -462,6 +509,7 @@
   }
 
   function init() {
+    renderVoc();
     renderSignals();
     renderSignalDetail();
     renderCandidateTable();

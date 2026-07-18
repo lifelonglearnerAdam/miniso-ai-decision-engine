@@ -3,12 +3,24 @@
 **面向新品研发的可回测、可校准、人在环中的 AI 决策引擎**
 AI 先锋未来人才大赛 · 三人学生团队 · 面向企业真实业务问题 · 竞赛评审版 v0.2.4
 
+<p align="center">
+  <a href="https://lifelonglearneradam.github.io/miniso-ai-decision-engine/"><img alt="立即在线体验" src="https://img.shields.io/badge/%E7%AB%8B%E5%8D%B3%E5%9C%A8%E7%BA%BF%E4%BD%93%E9%AA%8C-%E6%89%93%E5%BC%80%E8%AF%84%E5%AE%A1%E5%B7%A5%E4%BD%9C%E5%8F%B0-E32B32?style=for-the-badge"></a>
+  <a href="docs/00_评委快速指南.md"><img alt="3 分钟评审指南" src="https://img.shields.io/badge/3_%E5%88%86%E9%92%9F-%E8%AF%84%E5%AE%A1%E6%8C%87%E5%8D%97-202124?style=for-the-badge"></a>
+  <a href="docs/00_用户真实反馈洞察/report/miniso_user_insight_report_zh.md"><img alt="用户洞察报告" src="https://img.shields.io/badge/119_%E6%9D%A1%E6%A0%B7%E6%9C%AC-%E7%94%A8%E6%88%B7%E6%B4%9E%E5%AF%9F-187454?style=for-the-badge"></a>
+</p>
+
+<p align="center"><strong>点击下图进入公网演示：公开用户洞察 → 趋势证据 → 创意前沿 → 上市前验证 → 人工决策 → 回测与治理</strong></p>
+
+<p align="center">
+  <a href="https://lifelonglearneradam.github.io/miniso-ai-decision-engine/"><img src="docs/assets/dashboard-preview.jpg" alt="MINISO AI 新品决策工作台预览，可点击进入在线演示" width="1100"></a>
+</p>
+
 [![Quality Gate](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml/badge.svg)](https://github.com/lifelonglearnerAdam/miniso-ai-decision-engine/actions/workflows/ci.yml)
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Evidence](https://img.shields.io/badge/evidence-synthetic%20demo-F59E0B)](artifacts/demo/metrics.json)
 
-> **评审演示入口**：[打开公网新品决策工作台](https://lifelonglearneradam.github.io/miniso-ai-decision-engine/) · 趋势证据 → 创意前沿 → 上市前验证 → 人工决策 → 回测与治理
+> **评审演示入口**：[打开公网新品决策工作台](https://lifelonglearneradam.github.io/miniso-ai-decision-engine/) · 用户洞察 → 趋势证据 → 创意前沿 → 上市前验证 → 人工决策 → 回测与治理
 
 > **评审对象**：本页面面向赛事评委、赛题企业代表，以及业务、技术、安全与治理评审人员。内容按“企业问题—解决机制—可核验证据—联合验证路径”组织；命令行和代码目录仅用于技术复核，不是本方案的主要叙事。
 
@@ -22,7 +34,8 @@ AI 先锋未来人才大赛 · 三人学生团队 · 面向企业真实业务问
 
 | 评审角色 / 时间 | 建议查看 | 主要回答的问题 |
 |---:|---|---|
-| 综合评审 / 3 分钟 | [评委快速指南](docs/00_评委快速指南.md) | 企业问题、方案差异和证据边界 |
+| 综合评审 / 3 分钟 | [在线工作台](https://lifelonglearneradam.github.io/miniso-ai-decision-engine/) + [评委快速指南](docs/00_评委快速指南.md) | 企业问题、方案差异和证据边界 |
+| 用户与产品评审 / 6 分钟 | [公开用户洞察](docs/00_用户真实反馈洞察/report/miniso_user_insight_report_zh.md) | 用户问题如何转译为产品字段和验证动作 |
 | 业务评审 / 8 分钟 | [行业分析](docs/01_行业分析报告/README.md) + [企业试点路径](docs/02_技术白皮书/AI产品开发引擎技术白皮书.md#12-企业试点与验收) | 业务价值如何验证、如何控制试点风险 |
 | 技术评审 / 20 分钟 | 技术白皮书：[Word](output/docx/AI产品开发引擎技术白皮书.docx) · [PDF](output/pdf/AI产品开发引擎技术白皮书.pdf) · [Markdown](docs/02_技术白皮书/AI产品开发引擎技术白皮书.md) | 架构、算法、数据、安全与工程证据 |
 | 深度核验 | [机器可读结果](artifacts/demo/metrics.json) + [测试](tests/) + [CI](.github/workflows/ci.yml) + [安全治理](docs/07_安全治理与生产化.md) | 结果能否复现、边界是否可审计 |
